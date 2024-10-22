@@ -1,6 +1,6 @@
 [package]
 name = "spdcalc"
-version = "0.1.2"
+version = "2.0.0"
 authors = [
     "Jasper Palfree <jasper.palfree@colorado.edu>",
     "Krister Shalm <lynden.shalm@nist.gov>",
