@@ -534,7 +534,7 @@ mod test {
     )
     .into();
 
-    let mut crystal_setup: CrystalSetup = CrystalConfig::default().try_into().unwrap();
+    let mut crystal_setup: CrystalSetup = CrystalConfig::default().into();
     crystal_setup.theta = 90. * DEG;
     crystal_setup.length = 20_000e-6 * M;
 

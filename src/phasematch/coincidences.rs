@@ -40,11 +40,11 @@ pub fn phasematch_sinc(
 
 /// Get the phasematching function integrand for a given setup at given frequencies
 #[allow(non_snake_case)]
-pub fn get_pm_integrand<'a>(
+pub fn get_pm_integrand(
   omega_s: Frequency,
   omega_i: Frequency,
-  spdc: &'a SPDC,
-) -> impl Fn(f64) -> Complex<f64> + 'a {
+  spdc: &SPDC,
+) -> impl Fn(f64) -> Complex<f64> + '_ {
   let L = spdc.crystal_setup.length;
 
   let phi_s = spdc.signal.phi();
@@ -172,7 +172,9 @@ pub fn get_pm_integrand<'a>(
 
   // dbg!(As, Ai, Bs, Bi, Cs, Ci, Ds, Di);
 
-  let fn_z = move |z: f64| {
+  
+
+  move |z: f64| {
     let Ds_z = Ds * z;
     let Di_z = Di * z;
     let CsDs = Complex::new(0., *((Cs + Ds_z) * RAD / M2));
@@ -243,9 +245,7 @@ pub fn get_pm_integrand<'a>(
     // dbg!(pmzcoeff, z, numerator, denominator);
     // Now calculate the full term in the integral.
     pmzcoeff * numerator / denominator
-  };
-
-  fn_z
+  }
 }
 
 /// Evaluate the phasematching function for fiber coupling
@@ -469,7 +469,7 @@ pub fn phasematch_fiber_coupling2(
     pmzcoeff * numerator / denominator
   };
 
-  let result = 0.5 * integrator.integrate(&fn_z, -1., 1.);
+  let result = 0.5 * integrator.integrate(fn_z, -1., 1.);
 
   PerMeter4::new(result)
 }
@@ -672,7 +672,7 @@ fn phasematch_fiber_coupling_v3(
 
     // dbg!(pmzcoeff, z, numerator, denominator);
     // Now calculate the full term in the integral.
-    return ψ * pmzcoeff;
+    ψ * pmzcoeff
   };
 
   // let integrator = SimpsonIntegration::new(fn_z);
@@ -682,7 +682,7 @@ fn phasematch_fiber_coupling_v3(
   //   steps.unwrap_or_else(|| integration_steps_best_guess(L)),
   // );
 
-  let result = integrator.integrate(&fn_z, -1., 1.);
+  let result = integrator.integrate(fn_z, -1., 1.);
   PerMeter4::new(result)
 }
 
@@ -811,9 +811,9 @@ mod tests {
         (1510. * NANO * M, 1590. * NANO * M, 10),
       );
       for (ws, wi) in wavelengths.into_signal_idler_iterator() {
-        let old = *(phasematch_fiber_coupling(ws, wi, &spdc, Integrator::Simpson { divs: 5 })
+        let old = *(phasematch_fiber_coupling(ws, wi, spdc, Integrator::Simpson { divs: 5 })
           / JSAUnits::new(1.));
-        let new = *(phasematch_fiber_coupling2(ws, wi, &spdc, Integrator::Simpson { divs: 5 })
+        let new = *(phasematch_fiber_coupling2(ws, wi, spdc, Integrator::Simpson { divs: 5 })
           / JSAUnits::new(1.));
         let ls = frequency_to_vacuum_wavelength(ws);
         let li = frequency_to_vacuum_wavelength(wi);

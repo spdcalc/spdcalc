@@ -192,7 +192,7 @@ pub fn phasematch_singles_fiber_coupling(
   // };
   //
   // TODO: Where does this factor of 0.25 come from?
-  let result = 0.25 * integrator.integrate2d(&fn_z, -1., 1., -1., 1.).norm();
+  let result = 0.25 * integrator.integrate2d(fn_z, -1., 1., -1., 1.).norm();
 
   PerMeter3::new(result)
 }
@@ -226,7 +226,7 @@ mod tests {
     ) / PerMeter3::new(1.));
 
     let actual = amp;
-    let expected = Complex::new(9.518572188658382e+23, 95667755.72451791).norm();
+    let expected = Complex::new(9.518_572_188_658_382e23, 95667755.72451791).norm();
 
     let accept_diff = 1e-4;
 
@@ -265,7 +265,7 @@ mod tests {
     ) / PerMeter3::new(1.));
 
     let actual = amp;
-    let expected = Complex::new(1.6675811413977128e+24, -126659122.3067034).norm();
+    let expected = Complex::new(1.667_581_141_397_712_8e24, -126659122.3067034).norm();
 
     let accept_diff = 1e-4;
 

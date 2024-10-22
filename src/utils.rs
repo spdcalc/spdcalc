@@ -763,7 +763,7 @@ pub(crate) mod testing {
 
   pub fn percent_diff(actual: f64, expected: f64) -> f64 {
     if expected == 0. && actual == 0. {
-      return 0.;
+      0.
     } else {
       200. * ((expected - actual).abs() / (expected + actual))
     }

@@ -37,7 +37,6 @@ fn main() {
   };
 
   let data: Vec<(_, _)> = (1..20)
-    .into_iter()
     .map(|count| {
       let crystal_length = (1000 * count) as f64 * MICRO * M;
       crystal_setup.length = crystal_length;
