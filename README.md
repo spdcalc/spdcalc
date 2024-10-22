@@ -1,7 +1,7 @@
 # SPDCalc Library
 
 ![build](https://github.com/spdcalc/spdcalc/actions/workflows/ci.yaml/badge.svg?branch=master)
-![Crates.io Version](https://img.shields.io/crates/v/spdcalc)
+[![Crates.io Version](https://img.shields.io/crates/v/spdcalc)](https://crates.io/crates/spdcalc)
 
 SPDCalc is a fast design tool for spontaneous parametric downconversion sources.
 
@@ -18,7 +18,7 @@ pairs that are spectrally pure, meaning the signal and idler photons are
 uncorrelated, has been an active area of investigation. For fundamental
 tests of quantum mechanics, such as loop-hole-free Bell tests, optimizing
 the coupling of photons to single-mode fiber is an important consideration.
-//!
+
 While the principles behind the nonlinear process of downconversion are well
 understood, calculating the properties of the photons can be difficult and
 time-consuming when considering photons emitted at an angle with respect
