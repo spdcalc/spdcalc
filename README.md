@@ -1,6 +1,6 @@
 # SPDCalc Library
 
-![build](https://github.com/github/docs/actions/workflows/ci.yml/badge.svg?branch=master)
+![build](https://github.com/github/docs/actions/workflows/ci.yaml/badge.svg?branch=master)
 ![Crates.io Version](https://img.shields.io/crates/v/spdcalc)
 
 SPDCalc is a fast design tool for spontaneous parametric downconversion sources.
