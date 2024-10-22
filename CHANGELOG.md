@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/spdcalc/spdcalc/compare/v2.0.0...v2.0.1) (2024-10-22)
+
+
+### Bug Fixes
+
+* keywords in cargo ([1faf23f](https://github.com/spdcalc/spdcalc/commit/1faf23f1f2adc8d178be71f2102713eb194a9410))
+
 ## 2.0.0 (2024-10-22)
 
 
