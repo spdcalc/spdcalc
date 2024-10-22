@@ -7,14 +7,7 @@ authors = [
 ]
 edition = "2021"
 description = "SPDCalc, the Spontaneous Parametric Downconversion Calculator"
-keywords = [
-    "physics",
-    "spdc",
-    "spdcalc",
-    "photonics",
-    "quantum",
-    "downconversion",
-]
+keywords = ["physics", "spdc", "spdcalc", "photonics", "quantum"]
 license = "MIT"
 homepage = "https://app.spdcalc.org"
 repository = "https://github.com/spdcalc/spdcalc"
