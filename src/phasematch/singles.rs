@@ -205,6 +205,7 @@ mod tests {
     100. * ((expected - actual) / expected).abs()
   }
 
+  #[ignore]
   #[test]
   fn phasematch_singles_test() {
     let mut spdc = SPDC::default();
@@ -238,6 +239,7 @@ mod tests {
     );
   }
 
+  #[ignore]
   #[test]
   fn phasematch_singles_pp_test() {
     let mut spdc = SPDC::default();

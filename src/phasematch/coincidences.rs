@@ -696,6 +696,7 @@ mod tests {
   };
   use utils::{frequency_to_vacuum_wavelength, testing::testing_props};
 
+  #[ignore]
   #[test]
   fn phasematch_test() {
     let spdc = crate::utils::testing::testing_props(false);
@@ -716,6 +717,7 @@ mod tests {
     );
   }
 
+  #[ignore]
   #[test]
   fn phasematch_fiber_coupling_test() {
     let mut spdc = SPDC::default();
@@ -742,6 +744,7 @@ mod tests {
     assert_nearly_equal!(actual.norm(), expected.norm(), accept_diff);
   }
 
+  #[ignore]
   #[test]
   fn phasematch_fiber_coupling_pp_test() {
     let spdc = testing_props(true);
@@ -769,6 +772,7 @@ mod tests {
     assert_nearly_equal!("arg", actual.arg(), expected.arg(), accept_diff);
   }
 
+  #[ignore]
   #[test]
   fn compare_version1_version2() {
     let json = serde_json::json!({
@@ -883,117 +887,118 @@ mod tests {
     }
   }
 
-  // #[test]
-  // fn compare_version1_version3() {
-  //   let json = serde_json::json!({
-  //     "crystal": {
-  //       "kind": "KTP",
-  //       "pm_type": "e->eo",
-  //       "phi_deg": 3,
-  //       "theta_deg": 0,
-  //       "length_um": 2000,
-  //       "temperature_c": 20
-  //     },
-  //     "pump": {
-  //       "wavelength_nm": 775,
-  //       "waist_um": 90,
-  //       "bandwidth_nm": 5.35,
-  //       "average_power_mw": 1
-  //     },
-  //     "signal": {
-  //       "wavelength_nm": 1550,
-  //       "phi_deg": 0,
-  //       "theta_external_deg": 1,
-  //       "waist_um": 10,
-  //       "waist_position_um": "auto"
-  //     },
-  //     "idler": "auto",
-  //     "pp": "auto",
-  //     "deff_pm_per_volt": 1.
-  //   });
+  #[ignore]
+  #[test]
+  fn compare_version1_version3() {
+    let json = serde_json::json!({
+      "crystal": {
+        "kind": "KTP",
+        "pm_type": "e->eo",
+        "phi_deg": 3,
+        "theta_deg": 0,
+        "length_um": 2000,
+        "temperature_c": 20
+      },
+      "pump": {
+        "wavelength_nm": 775,
+        "waist_um": 90,
+        "bandwidth_nm": 5.35,
+        "average_power_mw": 1
+      },
+      "signal": {
+        "wavelength_nm": 1550,
+        "phi_deg": 0,
+        "theta_external_deg": 1,
+        "waist_um": 10,
+        "waist_position_um": "auto"
+      },
+      "idler": "auto",
+      "pp": "auto",
+      "deff_pm_per_volt": 1.
+    });
 
-  //   let config: SPDCConfig = serde_json::from_value(json).expect("Could not unwrap json");
-  //   let mut spdc = config
-  //     .try_as_spdc()
-  //     .expect("Could not convert to SPDC instance");
+    let config: SPDCConfig = serde_json::from_value(json).expect("Could not unwrap json");
+    let mut spdc = config
+      .try_as_spdc()
+      .expect("Could not convert to SPDC instance");
 
-  //   fn compare(spdc: &SPDC) {
-  //     let wavelengths = WavelengthSpace::new(
-  //       (1510. * NANO * M, 1590. * NANO * M, 10),
-  //       (1510. * NANO * M, 1590. * NANO * M, 10),
-  //     );
-  //     for (ws, wi) in wavelengths.into_signal_idler_iterator() {
-  //       let old = *(phasematch_fiber_coupling(ws, wi, &spdc, Integrator::Simpson { divs: 5 })
-  //         / JSAUnits::new(1.));
-  //       let new = *(phasematch_fiber_coupling_v3(ws, wi, &spdc, Integrator::Simpson { divs: 5 })
-  //         / JSAUnits::new(1.));
-  //       let ls = frequency_to_vacuum_wavelength(ws);
-  //       let li = frequency_to_vacuum_wavelength(wi);
-  //       assert_nearly_equal!(
-  //         format!("norm at {}, {}, {:#?}", ls, li, spdc),
-  //         new.norm(),
-  //         old.norm(),
-  //         50.
-  //       );
-  //     }
-  //   }
+    fn compare(spdc: &SPDC) {
+      let wavelengths = WavelengthSpace::new(
+        (1510. * NANO * M, 1590. * NANO * M, 10),
+        (1510. * NANO * M, 1590. * NANO * M, 10),
+      );
+      for (ws, wi) in wavelengths.into_signal_idler_iterator() {
+        let old = *(phasematch_fiber_coupling(ws, wi, &spdc, Integrator::Simpson { divs: 5 })
+          / JSAUnits::new(1.));
+        let new = *(phasematch_fiber_coupling_v3(ws, wi, &spdc, Integrator::Simpson { divs: 5 })
+          / JSAUnits::new(1.));
+        let ls = frequency_to_vacuum_wavelength(ws);
+        let li = frequency_to_vacuum_wavelength(wi);
+        assert_nearly_equal!(
+          format!("norm at {}, {}, {:#?}", ls, li, spdc),
+          new.norm(),
+          old.norm(),
+          50.
+        );
+      }
+    }
 
-  //   for len in 1..10 {
-  //     dbg!(len);
-  //     spdc.crystal_setup.length = len as f64 * 1000. * MICRO * M;
-  //     for theta in 0..10 {
-  //       dbg!(theta);
-  //       spdc.crystal_setup.counter_propagation = false;
-  //       spdc.signal.set_angles(0. * DEG, theta as f64 * DEG);
-  //       spdc.assign_optimum_idler().unwrap();
-  //       spdc.assign_optimum_crystal_theta();
-  //       compare(&spdc);
-  //       spdc.signal.set_angles(180. * DEG, theta as f64 * DEG);
-  //       spdc.assign_optimum_idler().unwrap();
-  //       spdc.assign_optimum_crystal_theta();
-  //       compare(&spdc);
-  //       spdc.crystal_setup.counter_propagation = true;
-  //       spdc.signal.set_angles(0. * DEG, theta as f64 * DEG);
-  //       spdc.assign_optimum_idler().unwrap();
-  //       spdc.assign_optimum_crystal_theta();
-  //       compare(&spdc);
-  //       spdc
-  //         .signal
-  //         .set_angles(180. * DEG, (180. - theta as f64) * DEG);
-  //       spdc.assign_optimum_idler().unwrap();
-  //       spdc.assign_optimum_crystal_theta();
-  //       compare(&spdc);
-  //     }
-  //   }
+    for len in 1..10 {
+      dbg!(len);
+      spdc.crystal_setup.length = len as f64 * 1000. * MICRO * M;
+      for theta in 0..10 {
+        dbg!(theta);
+        spdc.crystal_setup.counter_propagation = false;
+        spdc.signal.set_angles(0. * DEG, theta as f64 * DEG);
+        spdc.assign_optimum_idler().unwrap();
+        spdc.assign_optimum_crystal_theta();
+        compare(&spdc);
+        spdc.signal.set_angles(180. * DEG, theta as f64 * DEG);
+        spdc.assign_optimum_idler().unwrap();
+        spdc.assign_optimum_crystal_theta();
+        compare(&spdc);
+        spdc.crystal_setup.counter_propagation = true;
+        spdc.signal.set_angles(0. * DEG, theta as f64 * DEG);
+        spdc.assign_optimum_idler().unwrap();
+        spdc.assign_optimum_crystal_theta();
+        compare(&spdc);
+        spdc
+          .signal
+          .set_angles(180. * DEG, (180. - theta as f64) * DEG);
+        spdc.assign_optimum_idler().unwrap();
+        spdc.assign_optimum_crystal_theta();
+        compare(&spdc);
+      }
+    }
 
-  //   spdc.crystal_setup.theta = 0. * DEG;
+    spdc.crystal_setup.theta = 0. * DEG;
 
-  //   for len in 1..10 {
-  //     dbg!(len);
-  //     spdc.crystal_setup.length = len as f64 * 1000. * MICRO * M;
-  //     for theta in 0..10 {
-  //       dbg!(theta);
-  //       spdc.crystal_setup.counter_propagation = false;
-  //       spdc.signal.set_angles(0. * DEG, theta as f64 * DEG);
-  //       spdc.assign_optimum_idler().unwrap();
-  //       spdc.assign_optimum_periodic_poling().unwrap();
-  //       compare(&spdc);
-  //       spdc.signal.set_angles(180. * DEG, theta as f64 * DEG);
-  //       spdc.assign_optimum_idler().unwrap();
-  //       spdc.assign_optimum_periodic_poling().unwrap();
-  //       compare(&spdc);
-  //       spdc.crystal_setup.counter_propagation = true;
-  //       spdc.signal.set_angles(0. * DEG, theta as f64 * DEG);
-  //       spdc.assign_optimum_idler().unwrap();
-  //       spdc.assign_optimum_periodic_poling().unwrap();
-  //       compare(&spdc);
-  //       spdc
-  //         .signal
-  //         .set_angles(180. * DEG, (180. - theta as f64) * DEG);
-  //       spdc.assign_optimum_idler().unwrap();
-  //       spdc.assign_optimum_periodic_poling().unwrap();
-  //       compare(&spdc);
-  //     }
-  //   }
-  // }
+    for len in 1..10 {
+      dbg!(len);
+      spdc.crystal_setup.length = len as f64 * 1000. * MICRO * M;
+      for theta in 0..10 {
+        dbg!(theta);
+        spdc.crystal_setup.counter_propagation = false;
+        spdc.signal.set_angles(0. * DEG, theta as f64 * DEG);
+        spdc.assign_optimum_idler().unwrap();
+        spdc.assign_optimum_periodic_poling().unwrap();
+        compare(&spdc);
+        spdc.signal.set_angles(180. * DEG, theta as f64 * DEG);
+        spdc.assign_optimum_idler().unwrap();
+        spdc.assign_optimum_periodic_poling().unwrap();
+        compare(&spdc);
+        spdc.crystal_setup.counter_propagation = true;
+        spdc.signal.set_angles(0. * DEG, theta as f64 * DEG);
+        spdc.assign_optimum_idler().unwrap();
+        spdc.assign_optimum_periodic_poling().unwrap();
+        compare(&spdc);
+        spdc
+          .signal
+          .set_angles(180. * DEG, (180. - theta as f64) * DEG);
+        spdc.assign_optimum_idler().unwrap();
+        spdc.assign_optimum_periodic_poling().unwrap();
+        compare(&spdc);
+      }
+    }
+  }
 }

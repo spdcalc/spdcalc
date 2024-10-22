@@ -8,9 +8,11 @@ use crate::Wavelength;
 ///
 /// ## Example
 /// ```
-/// use spdcalc::{dim::{f64prefixes::*, ucum::{M}}, BeamWaist};
+/// use spdcalc::prelude::*;
+/// use spdcalc::beam::BeamWaist;
 /// let w = BeamWaist::new(100.0 * MICRO * M);
-/// assert_eq!(w.ellipticity(), 1.0);
+/// assert_eq!(w.x, 100.0 * MICRO * M);
+/// assert_eq!(w.y, 100.0 * MICRO * M);
 /// assert_eq!(w, (100.0 * MICRO * M).into());
 /// ```
 #[derive(Debug, Copy, Clone, PartialEq)]

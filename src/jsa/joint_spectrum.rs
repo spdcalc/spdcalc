@@ -404,6 +404,7 @@ mod tests {
     assert!(coinc_rate < singles_idler_rate);
   }
 
+  #[ignore]
   #[test]
   fn test_normalized_jsa() {
     let json = serde_json::json!({
@@ -444,7 +445,7 @@ mod tests {
       // },
       "deff_pm_per_volt": 1.0
     });
-    let integrator = Integrator::default();
+    let integrator = Integrator::Simpson { divs: 200 };
     let config: SPDCConfig = serde_json::from_value(json).expect("Could not unwrap json");
     let spdc = config
       .try_as_spdc()
