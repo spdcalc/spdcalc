@@ -365,7 +365,7 @@ mod tests {
     // });
 
     let config: SPDCConfig = serde_json::from_value(json).expect("Could not unwrap json");
-    
+
     config
       .try_as_spdc()
       .expect("Could not convert to SPDC instance")

@@ -172,8 +172,6 @@ pub fn get_pm_integrand(
 
   // dbg!(As, Ai, Bs, Bi, Cs, Ci, Ds, Di);
 
-  
-
   move |z: f64| {
     let Ds_z = Ds * z;
     let Di_z = Di * z;
