@@ -241,11 +241,7 @@ mod tests {
   #[test]
   fn phasematch_singles_pp_test() {
     let mut spdc = SPDC::default();
-    spdc.pp = PeriodicPoling::On {
-      sign: Sign::NEGATIVE,
-      period: 0.000018041674656364844 * M,
-      apodization: Apodization::Off,
-    };
+    spdc.assign_poling_period(0.000018041674656364844 * M);
     // spdc.signal.set_from_external_theta(3. * DEG, &spdc.crystal_setup);
     spdc.signal.set_angles(0. * RAD, 0.0341877166429185 * RAD);
     // spdc.assign_optimum_idler();
@@ -253,7 +249,7 @@ mod tests {
 
     // FIXME This isn't matching.
     spdc.idler.set_angles(PI * RAD, 0.031789820056487665 * RAD);
-    spdc.crystal_setup.theta = 1.5707963267948966 * RAD;
+    spdc.crystal_setup.theta = std::f64::consts::FRAC_PI_2 * RAD;
     spdc.signal_waist_position = -0.0006311635856188344 * M;
     spdc.idler_waist_position = -0.0006311635856188344 * M;
 

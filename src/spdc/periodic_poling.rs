@@ -395,7 +395,7 @@ pub fn optimum_poling_period(
   // maximum period is the length of the crystal
   let max_period = *(crystal_setup.length / M);
   // minimum period... typical poling periods are on the order of microns
-  let min_period = std::f64::MIN_POSITIVE;
+  let min_period = f64::MIN_POSITIVE;
 
   // minimize...
   let period = nelder_mead_1d(

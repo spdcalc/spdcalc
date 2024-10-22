@@ -389,6 +389,7 @@ where
   (m, fm, simpson_value)
 }
 
+#[allow(clippy::too_many_arguments)]
 /// Efficient recursive implementation of adaptive Simpson's rule
 /// Function values at the start, middle, end of the intervals are retained
 fn quad_asr<F, Y>(

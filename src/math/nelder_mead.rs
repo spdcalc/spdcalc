@@ -50,7 +50,7 @@ where
   type Output = f64;
   fn cost(&self, x: &Self::Param) -> Result<Self::Output, argmin::core::Error> {
     if x > &self.max || x < &self.min {
-      Ok(std::f64::INFINITY)
+      Ok(f64::INFINITY)
     } else {
       let f = &self.func;
       Ok(f(*x))

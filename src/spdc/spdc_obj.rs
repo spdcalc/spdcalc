@@ -107,6 +107,7 @@ impl AsRef<SPDC> for SPDC {
 }
 
 impl SPDC {
+  #[allow(clippy::too_many_arguments)]
   /// Create a new SPDC object
   pub fn new(
     crystal_setup: CrystalSetup,

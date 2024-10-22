@@ -1,7 +1,5 @@
 //! Modified from <https://github.com/b52/optimization-rust/>
 
-use std::f64::EPSILON;
-
 /// Compute the gradient (or derrivative) of function
 ///
 /// Uses simple one step forward finite difference with step width `h = √εx`.
@@ -29,10 +27,10 @@ where
     .enumerate()
     .map(|(i, x_i)| {
       let h = if x_i == 0.0 {
-        EPSILON.powf(1. / 3.)
-        // EPSILON * 1.0e10
+        f64::EPSILON.powf(1. / 3.)
+        // f64::EPSILON * 1.0e10
       } else {
-        EPSILON.powf(1. / 3.) * x_i.abs()
+        f64::EPSILON.powf(1. / 3.) * x_i.abs()
       };
 
       assert!(h.is_finite(), "Derivative 'h' is infinite!");
