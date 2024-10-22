@@ -5,7 +5,6 @@ _SpecRunner.html
 
 **/target/
 **/*.rs.bk
-Cargo.lock
 bin/
 web/pkg/
 **/wasm-pack.log
