@@ -928,9 +928,9 @@ mod tests {
         (1510. * NANO * M, 1590. * NANO * M, 10),
       );
       for (ws, wi) in wavelengths.into_signal_idler_iterator() {
-        let old = *(phasematch_fiber_coupling(ws, wi, &spdc, Integrator::Simpson { divs: 5 })
+        let old = *(phasematch_fiber_coupling(ws, wi, spdc, Integrator::Simpson { divs: 5 })
           / JSAUnits::new(1.));
-        let new = *(phasematch_fiber_coupling_v3(ws, wi, &spdc, Integrator::Simpson { divs: 5 })
+        let new = *(phasematch_fiber_coupling_v3(ws, wi, spdc, Integrator::Simpson { divs: 5 })
           / JSAUnits::new(1.));
         let ls = frequency_to_vacuum_wavelength(ws);
         let li = frequency_to_vacuum_wavelength(wi);

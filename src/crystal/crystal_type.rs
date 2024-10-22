@@ -132,8 +132,8 @@ impl CrystalType {
       "AgGaSe2_2" => Ok(CrystalType::AgGaSe2_2),
       _ => {
         // we replace all = with : since we're using hjson as a hack
-        let mut s = id.replace("=", ":");
-        if !s.trim().starts_with("{") {
+        let mut s = id.replace('=', ":");
+        if !s.trim().starts_with('{') {
           s = format!("{{{}}}", s);
         }
         Ok(CrystalType::Expr(
