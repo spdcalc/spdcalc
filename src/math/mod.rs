@@ -14,6 +14,9 @@ pub use self::nelder_mead::*;
 mod schmidt;
 pub use self::schmidt::*;
 
+mod interpolation;
+pub use interpolation::*;
+
 lazy_static::lazy_static! {
   static ref FWHM_OVER_WAIST :f64 = f64::sqrt(2. * f64::ln(2.));
 }
