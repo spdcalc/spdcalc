@@ -204,8 +204,9 @@ mod tests {
 
         let result = crystal.validate();
         assert!(result.is_err());
-        assert!(result.unwrap_err().0.contains("out of valid range"));
-        assert!(result.unwrap_err().0.contains("no"));
+        let err = result.unwrap_err();
+        assert!(err.0.contains("out of valid range"));
+        assert!(err.0.contains("no"));
     }
 
     #[test]
@@ -231,8 +232,9 @@ mod tests {
 
         let result = crystal.validate();
         assert!(result.is_err());
-        assert!(result.unwrap_err().0.contains("out of valid range"));
-        assert!(result.unwrap_err().0.contains("ne"));
+        let err = result.unwrap_err();
+        assert!(err.0.contains("out of valid range"));
+        assert!(err.0.contains("ne"));
     }
 
     #[test]

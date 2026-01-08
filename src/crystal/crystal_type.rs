@@ -351,9 +351,9 @@ mod tests {
 
     // Test get_indices with exact match
     let indices = crystal.get_indices(500.0 * NANO * M, from_celsius_to_kelvin(20.0));
-    assert_eq!(*indices.value_unsafe.x, 1.65);
-    assert_eq!(*indices.value_unsafe.y, 1.65);
-    assert_eq!(*indices.value_unsafe.z, 1.54);
+    assert_eq!((*indices).x, 1.65);
+    assert_eq!((*indices).y, 1.65);
+    assert_eq!((*indices).z, 1.54);
   }
 
   #[test]
@@ -371,9 +371,9 @@ mod tests {
     let indices = crystal.get_indices(500.0 * NANO * M, from_celsius_to_kelvin(20.0));
 
     use float_cmp::approx_eq;
-    assert!(approx_eq!(f64, *indices.value_unsafe.x, 1.65, epsilon = 1e-10));
-    assert!(approx_eq!(f64, *indices.value_unsafe.y, 1.65, epsilon = 1e-10));
-    assert!(approx_eq!(f64, *indices.value_unsafe.z, 1.54, epsilon = 1e-10));
+    assert!(approx_eq!(f64, (*indices).x, 1.65, epsilon = 1e-10));
+    assert!(approx_eq!(f64, (*indices).y, 1.65, epsilon = 1e-10));
+    assert!(approx_eq!(f64, (*indices).z, 1.54, epsilon = 1e-10));
   }
 
   #[test]
@@ -389,13 +389,13 @@ mod tests {
 
     // Test below range
     let indices = crystal.get_indices(400.0 * NANO * M, from_celsius_to_kelvin(20.0));
-    assert_eq!(*indices.value_unsafe.x, 1.65);
-    assert_eq!(*indices.value_unsafe.z, 1.54);
+    assert_eq!((*indices).x, 1.65);
+    assert_eq!((*indices).z, 1.54);
 
     // Test above range
     let indices = crystal.get_indices(700.0 * NANO * M, from_celsius_to_kelvin(20.0));
-    assert_eq!(*indices.value_unsafe.x, 1.64);
-    assert_eq!(*indices.value_unsafe.z, 1.53);
+    assert_eq!((*indices).x, 1.64);
+    assert_eq!((*indices).z, 1.53);
   }
 
   #[test]
@@ -457,14 +457,14 @@ mod tests {
     use float_cmp::approx_eq;
     assert!(approx_eq!(
       f64,
-      *expr_indices.value_unsafe.x,
-      *interp_indices.value_unsafe.x,
+      (*expr_indices).x,
+      (*interp_indices).x,
       epsilon = 1e-6
     ));
     assert!(approx_eq!(
       f64,
-      *expr_indices.value_unsafe.z,
-      *interp_indices.value_unsafe.z,
+      (*expr_indices).z,
+      (*interp_indices).z,
       epsilon = 1e-6
     ));
   }
