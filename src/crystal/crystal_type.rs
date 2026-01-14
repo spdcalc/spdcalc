@@ -434,9 +434,10 @@ mod tests {
   #[test]
   fn test_interpolated_vs_expr() {
     // Create an Expr-based crystal with linear relationship
+    // Slope: (1.64 - 1.66) / (0.6 - 0.4) = -0.1 per micron
     let expr_json = r#"{
-      "no": "1.66 - 0.0001 * (l - 0.4)",
-      "ne": "1.55 - 0.0001 * (l - 0.4)"
+      "no": "1.66 - 0.1 * (l - 0.4)",
+      "ne": "1.55 - 0.1 * (l - 0.4)"
     }"#;
     let expr_crystal: CrystalType = serde_json::from_str(expr_json).unwrap();
 
