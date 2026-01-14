@@ -58,6 +58,7 @@
 
 		// Shell history persistence
 		"source=devcontainer-zshhistory,target=/commandhistory,type=volume",
+		"source=claude-code-config-${devcontainerId},target=/claude,type=volume",
 
 		// Rust-specific caching
 		"source=cargo-cache-${devcontainerId},target=/usr/local/cargo/registry,type=volume",
@@ -66,6 +67,7 @@
 	],
 
 	"remoteEnv": {
+		"CLAUDE_CONFIG_DIR": "/claude",
 		"SSH_AUTH_SOCK": "/ssh-agent"
 	},
 
