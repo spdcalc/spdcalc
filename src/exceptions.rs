@@ -19,7 +19,7 @@ impl Error for SPDCError {
 
 impl SPDCError {
   /// Create a new SPDCError
-  pub fn new(message: String) -> Self {
-    Self(message)
+  pub fn new<S: ToString>(message: S) -> Self {
+    Self(message.to_string())
   }
 }
