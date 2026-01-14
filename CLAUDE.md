@@ -251,6 +251,7 @@ Variables: `l` = wavelength in μm, `T` = temperature offset from 20°C in Kelvi
 - Add inline comments for non-obvious physics or math
 - Keep functions focused and modular
 - Prefer type safety (dimensioned units) over raw numeric types
+- Use 2 spaces for indentation size
 
 ## Key Dependencies
 
