@@ -218,19 +218,8 @@ impl CrystalType {
           }
         }
       }
-
       CrystalType::Interpolated(interpolated) => {
-        use dim::f64prefixes::NANO;
-        // Convert wavelength from meters to nanometers
-        let wavelength_nm = *(vacuum_wavelength / (NANO * M));
-
-        // Temperature parameter is ignored for interpolated crystals
-        let (no, ne) = interpolated.get_indices(wavelength_nm).unwrap_or_else(|_| {
-          // Fallback to reasonable default if interpolation fails
-          (1.5, 1.5)
-        });
-
-        Indices::new(na::Vector3::new(no, no, ne))
+        interpolated.get_indices(vacuum_wavelength, temperature)
       }
     }
   }
@@ -345,15 +334,15 @@ mod tests {
 
     // Verify it's the Interpolated variant
     match crystal {
-      CrystalType::Interpolated(_) => {},
+      CrystalType::Interpolated(_) => {}
       _ => panic!("Expected Interpolated variant"),
     }
 
     // Test get_indices with exact match
     let indices = crystal.get_indices(500.0 * NANO * M, from_celsius_to_kelvin(20.0));
-    assert_eq!((*indices).x, 1.65);
-    assert_eq!((*indices).y, 1.65);
-    assert_eq!((*indices).z, 1.54);
+    assert_eq!(indices.x, 1.65);
+    assert_eq!(indices.y, 1.65);
+    assert_eq!(indices.z, 1.54);
   }
 
   #[test]
@@ -371,9 +360,9 @@ mod tests {
     let indices = crystal.get_indices(500.0 * NANO * M, from_celsius_to_kelvin(20.0));
 
     use float_cmp::approx_eq;
-    assert!(approx_eq!(f64, (*indices).x, 1.65, epsilon = 1e-10));
-    assert!(approx_eq!(f64, (*indices).y, 1.65, epsilon = 1e-10));
-    assert!(approx_eq!(f64, (*indices).z, 1.54, epsilon = 1e-10));
+    assert!(approx_eq!(f64, indices.x, 1.65, epsilon = 1e-10));
+    assert!(approx_eq!(f64, indices.y, 1.65, epsilon = 1e-10));
+    assert!(approx_eq!(f64, indices.z, 1.54, epsilon = 1e-10));
   }
 
   #[test]
@@ -389,13 +378,13 @@ mod tests {
 
     // Test below range
     let indices = crystal.get_indices(400.0 * NANO * M, from_celsius_to_kelvin(20.0));
-    assert_eq!((*indices).x, 1.65);
-    assert_eq!((*indices).z, 1.54);
+    assert_eq!(indices.x, 1.65);
+    assert_eq!(indices.z, 1.54);
 
     // Test above range
     let indices = crystal.get_indices(700.0 * NANO * M, from_celsius_to_kelvin(20.0));
-    assert_eq!((*indices).x, 1.64);
-    assert_eq!((*indices).z, 1.53);
+    assert_eq!(indices.x, 1.64);
+    assert_eq!(indices.z, 1.53);
   }
 
   #[test]
@@ -427,7 +416,7 @@ mod tests {
     let meta = crystal.get_meta();
 
     assert_eq!(meta.id, "InterpolatedUniaxial");
-    assert_eq!(meta.temperature_dependence_known, false);
+    assert!(!meta.temperature_dependence_known);
     assert_eq!(meta.transmission_range, None);
   }
 
@@ -458,14 +447,14 @@ mod tests {
     use float_cmp::approx_eq;
     assert!(approx_eq!(
       f64,
-      (*expr_indices).x,
-      (*interp_indices).x,
+      expr_indices.x,
+      interp_indices.x,
       epsilon = 1e-6
     ));
     assert!(approx_eq!(
       f64,
-      (*expr_indices).z,
-      (*interp_indices).z,
+      expr_indices.z,
+      interp_indices.z,
       epsilon = 1e-6
     ));
   }

@@ -16,8 +16,8 @@
 //! // result is approximately [1.655, 1.545] (midpoint between first two points)
 //! ```
 
-use crate::SPDCError;
 use super::lerp;
+use crate::SPDCError;
 
 /// A generic 1D linear interpolator
 ///
@@ -31,7 +31,6 @@ pub struct Interpolator<const N: usize> {
 }
 
 impl<const N: usize> Interpolator<N> {
-
   /// Create a new interpolator from input and output data
   ///
   /// ## Validation
@@ -77,7 +76,10 @@ impl<const N: usize> Interpolator<N> {
     // Validate monotonicity (no duplicates)
     for i in 1..sorted_inputs.len() {
       if sorted_inputs[i] <= sorted_inputs[i - 1] {
-        return Err(SPDCError::new(format!("Duplicate input value found: {}", sorted_inputs[i])));
+        return Err(SPDCError::new(format!(
+          "Duplicate input value found: {}",
+          sorted_inputs[i]
+        )));
       }
     }
 
@@ -146,9 +148,7 @@ impl<const N: usize> Interpolator<N> {
           let t = (input - input0) / (input1 - input0);
 
           // Interpolate each output dimension
-          std::array::from_fn(|i| {
-            lerp(self.outputs[i0][i], self.outputs[i1][i], t)
-          })
+          std::array::from_fn(|i| lerp(self.outputs[i0][i], self.outputs[i1][i], t))
         }
       }
     }
