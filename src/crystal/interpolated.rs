@@ -173,6 +173,37 @@ pub enum InterpolatedCrystal {
 }
 
 impl InterpolatedCrystal {
+  /// Create a new uniaxial interpolated crystal from wavelength and refractive index data
+  ///
+  /// # Arguments
+  /// * `wavelengths_nm` - Wavelengths in nanometers (must be sorted, will be sorted automatically)
+  /// * `no` - Ordinary refractive indices (nx = ny = no for uniaxial)
+  /// * `ne` - Extraordinary refractive indices (nz = ne for uniaxial)
+  ///
+  /// # Example
+  /// ```
+  /// use spdcalc::crystal::InterpolatedCrystal;
+  ///
+  /// let crystal = InterpolatedCrystal::new_uniaxial(
+  ///   vec![400.0, 500.0, 600.0],
+  ///   vec![1.66, 1.65, 1.64],
+  ///   vec![1.55, 1.54, 1.53],
+  /// ).unwrap();
+  /// ```
+  pub fn new_uniaxial(
+    wavelengths_nm: Vec<f64>,
+    no: Vec<f64>,
+    ne: Vec<f64>,
+  ) -> Result<Self, SPDCError> {
+    let data = InterpolatedUniaxialData {
+      wavelengths_nm,
+      no,
+      ne,
+    };
+    let inner = InterpolatedUniaxialImpl::try_from(data)?;
+    Ok(InterpolatedCrystal::InterpolatedUniaxial(inner))
+  }
+
   /// Get refractive indices at a specific wavelength
   pub fn get_indices(&self, wavelength: Wavelength, temperature: Kelvin<f64>) -> Indices {
     match self {
@@ -199,25 +230,21 @@ mod tests {
 
   #[test]
   fn test_validate_valid_data() {
-    let json = r#"{
-      "wavelengths_nm": [400.0, 500.0, 600.0],
-      "no": [1.66, 1.65, 1.64],
-      "ne": [1.55, 1.54, 1.53]
-    }"#;
-
-    let result: Result<InterpolatedUniaxialImpl, _> = serde_json::from_str(json);
+    let result = InterpolatedCrystal::new_uniaxial(
+      vec![400.0, 500.0, 600.0],
+      vec![1.66, 1.65, 1.64],
+      vec![1.55, 1.54, 1.53],
+    );
     assert!(result.is_ok());
   }
 
   #[test]
   fn test_validate_length_mismatch() {
-    let json = r#"{
-      "wavelengths_nm": [400.0, 500.0, 600.0],
-      "no": [1.66, 1.65],
-      "ne": [1.55, 1.54, 1.53]
-    }"#;
-
-    let result: Result<InterpolatedUniaxialImpl, _> = serde_json::from_str(json);
+    let result = InterpolatedCrystal::new_uniaxial(
+      vec![400.0, 500.0, 600.0],
+      vec![1.66, 1.65], // Mismatched length
+      vec![1.55, 1.54, 1.53],
+    );
     assert!(result.is_err());
     assert!(result
       .unwrap_err()
@@ -227,13 +254,7 @@ mod tests {
 
   #[test]
   fn test_validate_empty_data() {
-    let json = r#"{
-      "wavelengths_nm": [],
-      "no": [],
-      "ne": []
-    }"#;
-
-    let result: Result<InterpolatedUniaxialImpl, _> = serde_json::from_str(json);
+    let result = InterpolatedCrystal::new_uniaxial(vec![], vec![], vec![]);
     assert!(result.is_err());
     assert!(result
       .unwrap_err()
@@ -243,13 +264,11 @@ mod tests {
 
   #[test]
   fn test_validate_no_out_of_range_low() {
-    let json = r#"{
-      "wavelengths_nm": [400.0, 500.0],
-      "no": [0.5, 1.65],
-      "ne": [1.55, 1.54]
-    }"#;
-
-    let result: Result<InterpolatedUniaxialImpl, _> = serde_json::from_str(json);
+    let result = InterpolatedCrystal::new_uniaxial(
+      vec![400.0, 500.0],
+      vec![0.5, 1.65], // Invalid: 0.5 < 1.0
+      vec![1.55, 1.54],
+    );
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
     assert!(err.contains("must be greater than 1.0"));
@@ -258,13 +277,11 @@ mod tests {
 
   #[test]
   fn test_validate_ne_out_of_range() {
-    let json = r#"{
-      "wavelengths_nm": [400.0, 500.0],
-      "no": [1.66, 1.65],
-      "ne": [0.8, 1.54]
-    }"#;
-
-    let result: Result<InterpolatedUniaxialImpl, _> = serde_json::from_str(json);
+    let result = InterpolatedCrystal::new_uniaxial(
+      vec![400.0, 500.0],
+      vec![1.66, 1.65],
+      vec![0.8, 1.54], // Invalid: 0.8 < 1.0
+    );
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
     assert!(err.contains("must be greater than 1.0"));
@@ -273,13 +290,11 @@ mod tests {
 
   #[test]
   fn test_validate_duplicate_wavelengths() {
-    let json = r#"{
-      "wavelengths_nm": [400.0, 500.0, 500.0],
-      "no": [1.66, 1.65, 1.64],
-      "ne": [1.55, 1.54, 1.53]
-    }"#;
-
-    let result: Result<InterpolatedUniaxialImpl, _> = serde_json::from_str(json);
+    let result = InterpolatedCrystal::new_uniaxial(
+      vec![400.0, 500.0, 500.0], // Duplicate wavelength
+      vec![1.66, 1.65, 1.64],
+      vec![1.55, 1.54, 1.53],
+    );
     assert!(result.is_err());
     assert!(result
       .unwrap_err()
@@ -289,13 +304,13 @@ mod tests {
 
   #[test]
   fn test_get_indices_exact_match() {
-    let json = r#"{
-      "wavelengths_nm": [400.0, 500.0, 600.0],
-      "no": [1.66, 1.65, 1.64],
-      "ne": [1.55, 1.54, 1.53]
-    }"#;
+    let crystal = InterpolatedCrystal::new_uniaxial(
+      vec![400.0, 500.0, 600.0],
+      vec![1.66, 1.65, 1.64],
+      vec![1.55, 1.54, 1.53],
+    )
+    .unwrap();
 
-    let crystal: InterpolatedUniaxialImpl = serde_json::from_str(json).unwrap();
     let indices = crystal.get_indices(500.0 * NANO * M, from_celsius_to_kelvin(20.0));
 
     assert_eq!(indices.x, 1.65); // no
@@ -304,13 +319,13 @@ mod tests {
 
   #[test]
   fn test_get_indices_interpolation() {
-    let json = r#"{
-      "wavelengths_nm": [400.0, 600.0],
-      "no": [1.66, 1.64],
-      "ne": [1.55, 1.53]
-    }"#;
+    let crystal = InterpolatedCrystal::new_uniaxial(
+      vec![400.0, 600.0],
+      vec![1.66, 1.64],
+      vec![1.55, 1.53],
+    )
+    .unwrap();
 
-    let crystal: InterpolatedUniaxialImpl = serde_json::from_str(json).unwrap();
     let indices = crystal.get_indices(500.0 * NANO * M, from_celsius_to_kelvin(20.0));
 
     assert!(approx_eq!(f64, indices.x, 1.65, epsilon = 1e-10)); // no
@@ -319,13 +334,13 @@ mod tests {
 
   #[test]
   fn test_get_indices_extrapolation_below() {
-    let json = r#"{
-      "wavelengths_nm": [500.0, 600.0],
-      "no": [1.65, 1.64],
-      "ne": [1.54, 1.53]
-    }"#;
+    let crystal = InterpolatedCrystal::new_uniaxial(
+      vec![500.0, 600.0],
+      vec![1.65, 1.64],
+      vec![1.54, 1.53],
+    )
+    .unwrap();
 
-    let crystal: InterpolatedUniaxialImpl = serde_json::from_str(json).unwrap();
     let indices = crystal.get_indices(400.0 * NANO * M, from_celsius_to_kelvin(20.0));
 
     assert_eq!(indices.x, 1.65); // Clamped to first value
@@ -334,13 +349,13 @@ mod tests {
 
   #[test]
   fn test_get_indices_extrapolation_above() {
-    let json = r#"{
-      "wavelengths_nm": [400.0, 500.0],
-      "no": [1.66, 1.65],
-      "ne": [1.55, 1.54]
-    }"#;
+    let crystal = InterpolatedCrystal::new_uniaxial(
+      vec![400.0, 500.0],
+      vec![1.66, 1.65],
+      vec![1.55, 1.54],
+    )
+    .unwrap();
 
-    let crystal: InterpolatedUniaxialImpl = serde_json::from_str(json).unwrap();
     let indices = crystal.get_indices(700.0 * NANO * M, from_celsius_to_kelvin(20.0));
 
     assert_eq!(indices.x, 1.65); // Clamped to last value

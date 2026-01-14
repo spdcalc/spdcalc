@@ -7,15 +7,18 @@ extern crate spdcalc;
 use spdcalc::{crystal::CrystalType, dim::ucum::M};
 
 fn create_interpolated_crystal() -> CrystalType {
+  use spdcalc::crystal::InterpolatedCrystal;
+
   // Create an interpolated crystal with realistic data covering visible to NIR range
   // This mimics a typical BBO-like crystal
-  let json = r#"{
-    "name": "InterpolatedUniaxial",
-    "wavelengths_nm": [400.0, 450.0, 500.0, 550.0, 600.0, 650.0, 700.0, 750.0, 800.0, 850.0, 900.0],
-    "no": [1.6749, 1.6725, 1.6701, 1.6677, 1.6653, 1.6629, 1.6605, 1.6581, 1.6557, 1.6533, 1.6509],
-    "ne": [1.5555, 1.5540, 1.5525, 1.5510, 1.5495, 1.5480, 1.5465, 1.5450, 1.5435, 1.5420, 1.5405]
-  }"#;
-  serde_json::from_str(json).expect("Failed to create interpolated crystal")
+  let wavelengths_nm = vec![400.0, 450.0, 500.0, 550.0, 600.0, 650.0, 700.0, 750.0, 800.0, 850.0, 900.0];
+  let no = vec![1.6749, 1.6725, 1.6701, 1.6677, 1.6653, 1.6629, 1.6605, 1.6581, 1.6557, 1.6533, 1.6509];
+  let ne = vec![1.5555, 1.5540, 1.5525, 1.5510, 1.5495, 1.5480, 1.5465, 1.5450, 1.5435, 1.5420, 1.5405];
+
+  let crystal = InterpolatedCrystal::new_uniaxial(wavelengths_nm, no, ne)
+    .expect("Failed to create interpolated crystal");
+
+  CrystalType::Interpolated(crystal)
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
