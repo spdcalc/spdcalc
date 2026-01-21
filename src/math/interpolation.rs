@@ -22,7 +22,6 @@ use crate::SPDCError;
 /// A generic 1D linear interpolator
 ///
 /// Supports any fixed-size output dimension via const generics.
-/// Input data is automatically sorted during construction.
 /// Out-of-range inputs are clamped to boundary values (constant extrapolation).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Interpolator<const N: usize> {
@@ -36,7 +35,7 @@ impl<const N: usize> Interpolator<N> {
   /// ## Validation
   /// * Input and output arrays must have the same length
   /// * At least one data point is required
-  /// * Input values must be unique
+  /// * Input values must be unique and monotonically increasing
   ///
   /// ## Example
   /// ```
@@ -61,31 +60,16 @@ impl<const N: usize> Interpolator<N> {
       return Err(SPDCError::new("At least one data point is required"));
     }
 
-    // Create indices for sorting
-    let mut indices: Vec<usize> = (0..inputs.len()).collect();
-    indices.sort_by(|&a, &b| {
-      inputs[a]
-        .partial_cmp(&inputs[b])
-        .unwrap_or(std::cmp::Ordering::Equal)
-    });
+    // Check monotonicity and uniqueness
+    let is_monotonic = inputs.iter().skip(1).zip(inputs.iter()).all(|(a, b)| a > b);
 
-    // Sort inputs and outputs by input values
-    let sorted_inputs: Vec<f64> = indices.iter().map(|&i| inputs[i]).collect();
-    let sorted_outputs: Vec<[f64; N]> = indices.iter().map(|&i| outputs[i]).collect();
-
-    // Validate monotonicity (no duplicates)
-    for i in 1..sorted_inputs.len() {
-      if sorted_inputs[i] <= sorted_inputs[i - 1] {
-        return Err(SPDCError::new(format!(
-          "Duplicate input value found: {}",
-          sorted_inputs[i]
-        )));
-      }
+    if !is_monotonic {
+      return Err(SPDCError::new("Input values must be unique and monotonically increasing"));
     }
 
     Ok(Self {
-      inputs: sorted_inputs,
-      outputs: sorted_outputs,
+      inputs,
+      outputs,
     })
   }
 
@@ -157,7 +141,7 @@ impl<const N: usize> Interpolator<N> {
   /// Get the input range covered by this interpolator
   ///
   /// Returns `(min_input, max_input)`
-  pub fn input_range(&self) -> (f64, f64) {
+  pub fn input_bounds(&self) -> (f64, f64) {
     (self.inputs[0], self.inputs[self.inputs.len() - 1])
   }
 
@@ -222,18 +206,15 @@ mod tests {
     let outputs = vec![[10.0], [20.0], [20.0], [30.0]];
     let result = Interpolator::<1>::new(inputs, outputs);
     assert!(result.is_err());
-    assert!(result.unwrap_err().0.contains("Duplicate"));
   }
 
   #[test]
-  fn test_new_auto_sorts() {
+  fn test_new_unsorted() {
     let inputs = vec![3.0, 1.0, 2.0]; // Unsorted
     let outputs = vec![[30.0], [10.0], [20.0]];
-    let interp = Interpolator::<1>::new(inputs, outputs).unwrap();
-
-    // Should be sorted internally
-    assert_eq!(interp.inputs, vec![1.0, 2.0, 3.0]);
-    assert_eq!(interp.outputs, vec![[10.0], [20.0], [30.0]]);
+    let result = Interpolator::<1>::new(inputs, outputs);
+    // should fail
+    assert!(result.is_err());
   }
 
   #[test]
@@ -328,12 +309,12 @@ mod tests {
   }
 
   #[test]
-  fn test_input_range() {
+  fn test_input_bounds() {
     let inputs = vec![100.0, 200.0, 300.0];
     let outputs = vec![[1.0], [2.0], [3.0]];
     let interp = Interpolator::<1>::new(inputs, outputs).unwrap();
 
-    let (min, max) = interp.input_range();
+    let (min, max) = interp.input_bounds();
     assert_eq!(min, 100.0);
     assert_eq!(max, 300.0);
   }
