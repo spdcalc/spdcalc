@@ -64,13 +64,12 @@ impl<const N: usize> Interpolator<N> {
     let is_monotonic = inputs.iter().skip(1).zip(inputs.iter()).all(|(a, b)| a > b);
 
     if !is_monotonic {
-      return Err(SPDCError::new("Input values must be unique and monotonically increasing"));
+      return Err(SPDCError::new(
+        "Input values must be unique and monotonically increasing",
+      ));
     }
 
-    Ok(Self {
-      inputs,
-      outputs,
-    })
+    Ok(Self { inputs, outputs })
   }
 
   /// Interpolate output value(s) at a given input

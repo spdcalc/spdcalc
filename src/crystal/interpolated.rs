@@ -99,19 +99,15 @@ impl InterpolatedUniaxialImpl {
     }
 
     // Construct interpolator with paired (no, ne) outputs
-    let outputs: Vec<[f64; 2]> = no
-      .iter()
-      .zip(&ne)
-      .map(|(&n_o, &n_e)| [n_o, n_e])
-      .collect();
+    let outputs: Vec<[f64; 2]> = no.iter().zip(&ne).map(|(&n_o, &n_e)| [n_o, n_e]).collect();
 
     let interpolator = Interpolator::<2>::new(wavelengths_nm.clone(), outputs)
       .map_err(|e| SPDCError::new(format!("Wavelength validation failed: {}", e)))?;
 
     Ok(Self {
       wavelengths_nm,
-      no: no,
-      ne: ne,
+      no,
+      ne,
       interpolator,
     })
   }
