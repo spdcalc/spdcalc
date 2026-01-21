@@ -70,9 +70,9 @@ fn benchmark_jsi_calculation(c: &mut Criterion) {
   let spdc_interpolated = create_spdc_with_crystal(create_interpolated_crystal());
 
   // Define a realistic JSI calculation range (20x20 grid)
-  let bbo_range = spdc_bbo.optimum_range(20);
-  let aggas2_range = spdc_aggas2.optimum_range(20);
-  let interpolated_range = spdc_interpolated.optimum_range(20);
+  let bbo_range = spdc_bbo.optimum_range(200);
+  let aggas2_range = spdc_aggas2.optimum_range(200);
+  let interpolated_range = spdc_interpolated.optimum_range(200);
 
   // Benchmark JSI calculation with BBO (hand-optimized Sellmeier)
   group.bench_function("JSI with BBO", |b| {
