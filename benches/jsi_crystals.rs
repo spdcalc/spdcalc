@@ -44,17 +44,18 @@ fn create_interpolated_crystal() -> CrystalType {
   use spdcalc::crystal::InterpolatedCrystal;
 
   // Build from BBO_1 data points
-  let wavelengths_nm = vec![1500.0, 1520.0, 1540.0, 1560.0, 1580.0, 1600.0];
-  let indices = wavelengths_nm.iter().map(|lambda_nm| {
-    let wavelength = lambda_nm * NANO * M;
-    CrystalType::BBO_1.get_indices(wavelength, from_celsius_to_kelvin(20.0))
+  let wavelengths = vec![1500.0, 1520.0, 1540.0, 1560.0, 1580.0, 1600.0].into_iter()
+    .map(|nm| nm * NANO * M)
+    .collect::<Vec<_>>();
+  let indices = wavelengths.iter().map(|lambda| {
+    CrystalType::BBO_1.get_indices(*lambda, from_celsius_to_kelvin(20.0))
   })
   .collect::<Vec<_>>();
 
   let no_values = indices.iter().map(|ind| ind.x).collect::<Vec<f64>>();
   let ne_values = indices.iter().map(|ind| ind.z).collect::<Vec<f64>>();
 
-  let crystal = InterpolatedCrystal::new_uniaxial(wavelengths_nm, no_values, ne_values)
+  let crystal = InterpolatedCrystal::new_uniaxial(wavelengths, no_values, ne_values)
     .expect("Failed to create interpolated crystal");
 
   CrystalType::Interpolated(crystal)

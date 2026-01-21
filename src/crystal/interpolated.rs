@@ -40,17 +40,87 @@ struct InterpolatedUniaxialData {
   into = "InterpolatedUniaxialData"
 )]
 pub struct InterpolatedUniaxialImpl {
-  wavelengths: Vec<Wavelength>,
+  wavelengths_nm: Vec<f64>,
   no: Vec<f64>, // Unitless refractive indices
   ne: Vec<f64>,
   #[serde(skip)]
   interpolator: Interpolator<2>, // Cached
 }
 
+impl InterpolatedUniaxialImpl {
+  /// Create a new uniaxial interpolated crystal from wavelength and refractive index data
+  pub fn try_new(
+    wavelengths: Vec<Wavelength>,
+    no: Vec<f64>,
+    ne: Vec<f64>,
+  ) -> Result<Self, SPDCError> {
+    // Convert wavelengths from dimensional types
+    let wavelengths_nm: Vec<f64> = wavelengths
+      .into_iter()
+      .map(|wl| *(wl / (NANO * M)))
+      .collect();
+
+    Self::try_new_raw(wavelengths_nm, no, ne)
+  }
+
+  /// Create a new uniaxial interpolated crystal from raw f64 wavelength (nm) and refractive index data
+  pub fn try_new_raw(
+    wavelengths_nm: Vec<f64>,
+    no: Vec<f64>,
+    ne: Vec<f64>,
+  ) -> Result<Self, SPDCError> {
+    // Validate array lengths
+    if wavelengths_nm.len() != no.len() || wavelengths_nm.len() != ne.len() {
+      return Err(SPDCError::new(format!(
+        "Array length mismatch: {} wavelengths, {} no values, {} ne values",
+        wavelengths_nm.len(),
+        no.len(),
+        ne.len()
+      )));
+    }
+
+    if wavelengths_nm.is_empty() {
+      return Err(SPDCError::new(
+        "At least one data point is required".to_string(),
+      ));
+    }
+
+    // Validate refractive index ranges
+    if no.iter().any(|&n| n < 1.0) {
+      return Err(SPDCError::new(format!(
+        "no values must be greater than or equal to 1.0"
+      )));
+    }
+
+    if ne.iter().any(|&n| n < 1.0) {
+      return Err(SPDCError::new(format!(
+        "ne values must be greater than or equal to 1.0"
+      )));
+    }
+
+    // Construct interpolator with paired (no, ne) outputs
+    let outputs: Vec<[f64; 2]> = no
+      .iter()
+      .zip(&ne)
+      .map(|(&n_o, &n_e)| [n_o, n_e])
+      .collect();
+
+    let interpolator = Interpolator::<2>::new(wavelengths_nm.clone(), outputs)
+      .map_err(|e| SPDCError::new(format!("Wavelength validation failed: {}", e)))?;
+
+    Ok(Self {
+      wavelengths_nm,
+      no: no,
+      ne: ne,
+      interpolator,
+    })
+  }
+}
+
 impl PartialEq for InterpolatedUniaxialImpl {
   fn eq(&self, other: &Self) -> bool {
     // Compare only the data, not the cached interpolator
-    self.no == other.no && self.ne == other.ne && self.wavelengths == other.wavelengths
+    self.no == other.no && self.ne == other.ne && self.wavelengths_nm == other.wavelengths_nm
   }
 }
 
@@ -58,76 +128,20 @@ impl TryFrom<InterpolatedUniaxialData> for InterpolatedUniaxialImpl {
   type Error = SPDCError;
 
   fn try_from(data: InterpolatedUniaxialData) -> Result<Self, Self::Error> {
-    // Validate array lengths
-    if data.wavelengths_nm.len() != data.no.len() || data.wavelengths_nm.len() != data.ne.len() {
-      return Err(SPDCError::new(format!(
-        "Array length mismatch: {} wavelengths, {} no values, {} ne values",
-        data.wavelengths_nm.len(),
-        data.no.len(),
-        data.ne.len()
-      )));
-    }
-
-    if data.wavelengths_nm.is_empty() {
-      return Err(SPDCError::new(
-        "At least one data point is required".to_string(),
-      ));
-    }
-
-    // Validate refractive index ranges
-    for (i, &n) in data.no.iter().enumerate() {
-      if n <= 1.0 {
-        return Err(SPDCError::new(format!(
-          "no at wavelength {} nm must be greater than 1.0: {}",
-          data.wavelengths_nm[i], n
-        )));
-      }
-    }
-
-    for (i, &n) in data.ne.iter().enumerate() {
-      if n <= 1.0 {
-        return Err(SPDCError::new(format!(
-          "ne at wavelength {} nm must be greater than 1.0: {}",
-          data.wavelengths_nm[i], n
-        )));
-      }
-    }
-
-    // Convert wavelengths to dimensional types
-    let wavelengths = data
+    let wavelengths: Vec<Wavelength> = data
       .wavelengths_nm
-      .iter()
-      .map(|&wl_nm| wl_nm * NANO * M)
+      .into_iter()
+      .map(|wl_nm| wl_nm * NANO * M)
       .collect();
 
-    // Construct interpolator with paired (no, ne) outputs
-    let outputs: Vec<[f64; 2]> = data
-      .no
-      .iter()
-      .zip(&data.ne)
-      .map(|(&n_o, &n_e)| [n_o, n_e])
-      .collect();
-
-    let interpolator = Interpolator::<2>::new(data.wavelengths_nm.clone(), outputs)
-      .map_err(|e| SPDCError::new(format!("Wavelength validation failed: {}", e)))?;
-
-    Ok(Self {
-      wavelengths,
-      no: data.no,
-      ne: data.ne,
-      interpolator,
-    })
+    Self::try_new(wavelengths, data.no, data.ne)
   }
 }
 
 impl From<&InterpolatedUniaxialImpl> for InterpolatedUniaxialData {
   fn from(value: &InterpolatedUniaxialImpl) -> Self {
     Self {
-      wavelengths_nm: value
-        .wavelengths
-        .iter()
-        .map(|&wl| *(wl / (NANO * M)))
-        .collect(),
+      wavelengths_nm: value.wavelengths_nm.clone(),
       no: value.no.clone(),
       ne: value.ne.clone(),
     }
@@ -183,24 +197,21 @@ impl InterpolatedCrystal {
   /// # Example
   /// ```
   /// use spdcalc::crystal::InterpolatedCrystal;
+  /// use spdcalc::dim::f64prefixes::NANO;
+  /// use spdcalc::dim::ucum::M;
   ///
   /// let crystal = InterpolatedCrystal::new_uniaxial(
-  ///   vec![400.0, 500.0, 600.0],
+  ///   vec![400.0 * NANO * M, 500.0 * NANO * M, 600.0 * NANO * M],
   ///   vec![1.66, 1.65, 1.64],
   ///   vec![1.55, 1.54, 1.53],
   /// ).unwrap();
   /// ```
   pub fn new_uniaxial(
-    wavelengths_nm: Vec<f64>,
+    wavelengths_nm: Vec<Wavelength>,
     no: Vec<f64>,
     ne: Vec<f64>,
   ) -> Result<Self, SPDCError> {
-    let data = InterpolatedUniaxialData {
-      wavelengths_nm,
-      no,
-      ne,
-    };
-    let inner = InterpolatedUniaxialImpl::try_from(data)?;
+    let inner = InterpolatedUniaxialImpl::try_new(wavelengths_nm, no, ne)?;
     Ok(InterpolatedCrystal::InterpolatedUniaxial(inner))
   }
 
@@ -231,7 +242,7 @@ mod tests {
   #[test]
   fn test_validate_valid_data() {
     let result = InterpolatedCrystal::new_uniaxial(
-      vec![400.0, 500.0, 600.0],
+      vec![400.0 * NANO * M, 500.0 * NANO * M, 600.0 * NANO * M],
       vec![1.66, 1.65, 1.64],
       vec![1.55, 1.54, 1.53],
     );
@@ -241,7 +252,7 @@ mod tests {
   #[test]
   fn test_validate_length_mismatch() {
     let result = InterpolatedCrystal::new_uniaxial(
-      vec![400.0, 500.0, 600.0],
+      vec![400.0 * NANO * M, 500.0 * NANO * M, 600.0 * NANO * M],
       vec![1.66, 1.65], // Mismatched length
       vec![1.55, 1.54, 1.53],
     );
@@ -265,33 +276,33 @@ mod tests {
   #[test]
   fn test_validate_no_out_of_range_low() {
     let result = InterpolatedCrystal::new_uniaxial(
-      vec![400.0, 500.0],
+      vec![400.0 * NANO * M, 500.0 * NANO * M],
       vec![0.5, 1.65], // Invalid: 0.5 < 1.0
       vec![1.55, 1.54],
     );
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
-    assert!(err.contains("must be greater than 1.0"));
+    assert!(err.contains("greater than or equal to 1.0"));
     assert!(err.contains("no"));
   }
 
   #[test]
   fn test_validate_ne_out_of_range() {
     let result = InterpolatedCrystal::new_uniaxial(
-      vec![400.0, 500.0],
+      vec![400.0 * NANO * M, 500.0 * NANO * M],
       vec![1.66, 1.65],
       vec![0.8, 1.54], // Invalid: 0.8 < 1.0
     );
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
-    assert!(err.contains("must be greater than 1.0"));
+    assert!(err.contains("greater than or equal to 1.0"));
     assert!(err.contains("ne"));
   }
 
   #[test]
   fn test_validate_duplicate_wavelengths() {
     let result = InterpolatedCrystal::new_uniaxial(
-      vec![400.0, 500.0, 500.0], // Duplicate wavelength
+      vec![400.0 * NANO * M, 500.0 * NANO * M, 500.0 * NANO * M], // Duplicate wavelength
       vec![1.66, 1.65, 1.64],
       vec![1.55, 1.54, 1.53],
     );
@@ -305,7 +316,7 @@ mod tests {
   #[test]
   fn test_get_indices_exact_match() {
     let crystal = InterpolatedCrystal::new_uniaxial(
-      vec![400.0, 500.0, 600.0],
+      vec![400.0 * NANO * M, 500.0 * NANO * M, 600.0 * NANO * M],
       vec![1.66, 1.65, 1.64],
       vec![1.55, 1.54, 1.53],
     )
@@ -320,7 +331,7 @@ mod tests {
   #[test]
   fn test_get_indices_interpolation() {
     let crystal = InterpolatedCrystal::new_uniaxial(
-      vec![400.0, 600.0],
+      vec![400.0 * NANO * M, 600.0 * NANO * M],
       vec![1.66, 1.64],
       vec![1.55, 1.53],
     )
@@ -335,7 +346,7 @@ mod tests {
   #[test]
   fn test_get_indices_extrapolation_below() {
     let crystal = InterpolatedCrystal::new_uniaxial(
-      vec![500.0, 600.0],
+      vec![500.0 * NANO * M, 600.0 * NANO * M],
       vec![1.65, 1.64],
       vec![1.54, 1.53],
     )
@@ -350,7 +361,7 @@ mod tests {
   #[test]
   fn test_get_indices_extrapolation_above() {
     let crystal = InterpolatedCrystal::new_uniaxial(
-      vec![400.0, 500.0],
+      vec![400.0 * NANO * M, 500.0 * NANO * M],
       vec![1.66, 1.65],
       vec![1.55, 1.54],
     )
