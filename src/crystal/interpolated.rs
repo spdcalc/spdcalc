@@ -87,11 +87,15 @@ impl InterpolatedUniaxialImpl {
 
     // Validate refractive index ranges
     if no.iter().any(|&n| n < 1.0) {
-      return Err(SPDCError::new("no values must be greater than or equal to 1.0".to_string()));
+      return Err(SPDCError::new(
+        "no values must be greater than or equal to 1.0".to_string(),
+      ));
     }
 
     if ne.iter().any(|&n| n < 1.0) {
-      return Err(SPDCError::new("ne values must be greater than or equal to 1.0".to_string()));
+      return Err(SPDCError::new(
+        "ne values must be greater than or equal to 1.0".to_string(),
+      ));
     }
 
     // Construct interpolator with paired (no, ne) outputs
