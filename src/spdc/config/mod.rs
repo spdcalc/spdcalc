@@ -695,4 +695,44 @@ mod test {
       epsilon = 1e-6
     ));
   }
+
+  #[test]
+  fn spdc_config_test_interpolated_crystal() {
+    let json_cfg = json!({
+      "crystal": {
+        "kind": {
+          "name": "InterpolatedUniaxial",
+          "wavelengths_nm": [400.0, 500.0, 600.0],
+          "no": [1.66, 1.65, 1.64],
+          "ne": [1.55, 1.54, 1.53]
+        },
+        "pm_type": "Type2_e_eo",
+        "theta_deg": 90.0,
+        "length_um": 2000.0,
+        "temperature_c": 20.0,
+        "counter_propagation": false
+      },
+      "pump": {
+        "wavelength_nm": 775.0,
+        "waist_um": 100.0,
+        "bandwidth_nm": 5.35,
+        "average_power_mw": 1.0,
+        "spectrum_threshold": 0.01
+      },
+      "signal": {
+        "wavelength_nm": 1550.0,
+        "phi_deg": 0.0,
+        "theta_deg": 0.0,
+        "waist_um": 100.0
+      },
+      "idler": "auto",
+      "periodic_poling": {
+        "poling_period_um": "auto"
+      },
+      "deff_pm_per_volt": 1.0
+    });
+    let config: SPDCConfig = serde_json::from_value(json_cfg).unwrap();
+    let result = config.try_as_spdc();
+    assert!(result.is_ok());
+  }
 }

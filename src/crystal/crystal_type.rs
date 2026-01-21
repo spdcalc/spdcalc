@@ -441,8 +441,8 @@ mod tests {
 
     // Compare at test wavelength
     let nm = NANO * M;
-    let expr_indices = expr_crystal.get_indices(500.0 * nm, from_celsius_to_kelvin(20.0));
-    let interp_indices = interp_crystal.get_indices(500.0 * nm, from_celsius_to_kelvin(20.0));
+    let expr_indices = expr_crystal.get_indices(532.0 * nm, from_celsius_to_kelvin(20.0));
+    let interp_indices = interp_crystal.get_indices(532.0 * nm, from_celsius_to_kelvin(20.0));
 
     use float_cmp::approx_eq;
     assert!(approx_eq!(
