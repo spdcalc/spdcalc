@@ -30,3 +30,6 @@ pub use crystal_setup::*;
 
 mod polarization_type;
 pub use polarization_type::*;
+
+mod interpolated;
+pub use interpolated::*;

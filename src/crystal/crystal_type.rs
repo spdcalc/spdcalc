@@ -65,6 +65,10 @@ pub enum CrystalType {
   /// Crystal Expression
   #[serde(untagged)]
   Expr(CrystalExpr),
+
+  /// Interpolated crystal data
+  #[serde(untagged)]
+  Interpolated(InterpolatedCrystal),
 }
 
 impl fmt::Display for CrystalType {
@@ -214,6 +218,9 @@ impl CrystalType {
           }
         }
       }
+      CrystalType::Interpolated(interpolated) => {
+        interpolated.get_indices(vacuum_wavelength, temperature)
+      }
     }
   }
 
@@ -241,6 +248,8 @@ impl CrystalType {
         transmission_range: None,
         temperature_dependence_known: false,
       },
+
+      CrystalType::Interpolated(interpolated) => interpolated.get_meta(),
     }
   }
 }
@@ -310,5 +319,143 @@ mod tests {
     let indices = crystal.get_indices(1064.0 * NANO * M, from_celsius_to_kelvin(45.0));
     let expected = CrystalType::BBO_1.get_indices(1064.0 * NANO * M, from_celsius_to_kelvin(45.0));
     assert_eq!(indices, expected);
+  }
+
+  #[test]
+  fn test_interpolated_crystal_deserialization() {
+    let json = r#"{
+      "name": "InterpolatedUniaxial",
+      "wavelengths_nm": [400.0, 500.0, 600.0],
+      "no": [1.66, 1.65, 1.64],
+      "ne": [1.55, 1.54, 1.53]
+    }"#;
+
+    let crystal: CrystalType = serde_json::from_str(json).unwrap();
+
+    // Verify it's the Interpolated variant
+    match crystal {
+      CrystalType::Interpolated(_) => {}
+      _ => panic!("Expected Interpolated variant"),
+    }
+
+    // Test get_indices with exact match
+    let indices = crystal.get_indices(500.0 * NANO * M, from_celsius_to_kelvin(20.0));
+    assert_eq!(indices.x, 1.65);
+    assert_eq!(indices.y, 1.65);
+    assert_eq!(indices.z, 1.54);
+  }
+
+  #[test]
+  fn test_interpolated_crystal_interpolation() {
+    let json = r#"{
+      "name": "InterpolatedUniaxial",
+      "wavelengths_nm": [400.0, 600.0],
+      "no": [1.66, 1.64],
+      "ne": [1.55, 1.53]
+    }"#;
+
+    let crystal: CrystalType = serde_json::from_str(json).unwrap();
+
+    // Test interpolation at midpoint (500 nm)
+    let indices = crystal.get_indices(500.0 * NANO * M, from_celsius_to_kelvin(20.0));
+
+    use float_cmp::approx_eq;
+    assert!(approx_eq!(f64, indices.x, 1.65, epsilon = 1e-10));
+    assert!(approx_eq!(f64, indices.y, 1.65, epsilon = 1e-10));
+    assert!(approx_eq!(f64, indices.z, 1.54, epsilon = 1e-10));
+  }
+
+  #[test]
+  fn test_interpolated_crystal_extrapolation() {
+    let json = r#"{
+      "name": "InterpolatedUniaxial",
+      "wavelengths_nm": [500.0, 600.0],
+      "no": [1.65, 1.64],
+      "ne": [1.54, 1.53]
+    }"#;
+
+    let crystal: CrystalType = serde_json::from_str(json).unwrap();
+
+    // Test below range
+    let indices = crystal.get_indices(400.0 * NANO * M, from_celsius_to_kelvin(20.0));
+    assert_eq!(indices.x, 1.65);
+    assert_eq!(indices.z, 1.54);
+
+    // Test above range
+    let indices = crystal.get_indices(700.0 * NANO * M, from_celsius_to_kelvin(20.0));
+    assert_eq!(indices.x, 1.64);
+    assert_eq!(indices.z, 1.53);
+  }
+
+  #[test]
+  fn test_interpolated_crystal_roundtrip() {
+    let json = r#"{
+      "name": "InterpolatedUniaxial",
+      "wavelengths_nm": [400.0, 500.0, 600.0],
+      "no": [1.66, 1.65, 1.64],
+      "ne": [1.55, 1.54, 1.53]
+    }"#;
+
+    let crystal: CrystalType = serde_json::from_str(json).unwrap();
+    let serialized = serde_json::to_string(&crystal).unwrap();
+    let deserialized: CrystalType = serde_json::from_str(&serialized).unwrap();
+
+    assert_eq!(crystal, deserialized);
+  }
+
+  #[test]
+  fn test_interpolated_crystal_get_meta() {
+    let json = r#"{
+      "name": "InterpolatedUniaxial",
+      "wavelengths_nm": [400.0, 500.0],
+      "no": [1.66, 1.65],
+      "ne": [1.55, 1.54]
+    }"#;
+
+    let crystal: CrystalType = serde_json::from_str(json).unwrap();
+    let meta = crystal.get_meta();
+
+    assert_eq!(meta.id, "InterpolatedUniaxial");
+    assert!(!meta.temperature_dependence_known);
+    assert_eq!(meta.transmission_range, None);
+  }
+
+  #[test]
+  fn test_interpolated_vs_expr() {
+    // Create an Expr-based crystal with linear relationship
+    // Slope: (1.64 - 1.66) / (0.6 - 0.4) = -0.1 per micron
+    let expr_json = r#"{
+      "no": "1.66 - 0.1 * (l - 0.4)",
+      "ne": "1.55 - 0.1 * (l - 0.4)"
+    }"#;
+    let expr_crystal: CrystalType = serde_json::from_str(expr_json).unwrap();
+
+    // Create equivalent interpolated crystal
+    let interp_json = r#"{
+      "name": "InterpolatedUniaxial",
+      "wavelengths_nm": [400.0, 500.0, 600.0],
+      "no": [1.66, 1.65, 1.64],
+      "ne": [1.55, 1.54, 1.53]
+    }"#;
+    let interp_crystal: CrystalType = serde_json::from_str(interp_json).unwrap();
+
+    // Compare at test wavelength
+    let nm = NANO * M;
+    let expr_indices = expr_crystal.get_indices(532.0 * nm, from_celsius_to_kelvin(20.0));
+    let interp_indices = interp_crystal.get_indices(532.0 * nm, from_celsius_to_kelvin(20.0));
+
+    use float_cmp::approx_eq;
+    assert!(approx_eq!(
+      f64,
+      expr_indices.x,
+      interp_indices.x,
+      epsilon = 1e-6
+    ));
+    assert!(approx_eq!(
+      f64,
+      expr_indices.z,
+      interp_indices.z,
+      epsilon = 1e-6
+    ));
   }
 }

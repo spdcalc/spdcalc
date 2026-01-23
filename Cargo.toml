@@ -71,3 +71,7 @@ harness = false
 [[bench]]
 name = "hom"
 harness = false
+
+[[bench]]
+name = "jsi_crystals"
+harness = false

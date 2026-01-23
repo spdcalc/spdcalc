@@ -1,74 +1,63 @@
 {
-	"name": "Rust Development Environment",
-	"image": "mcr.microsoft.com/devcontainers/base:debian",
+  "name": "Development Environment",
+  "image": "mcr.microsoft.com/devcontainers/base:debian",
 
-	"features": {
-		"ghcr.io/devcontainers/features/common-utils:2": {
-			"installZsh": true,
-			"configureZshAsDefaultShell": true,
-			"installOhMyZsh": false,
-			"upgradePackages": true
-		},
-		"ghcr.io/devcontainers-extra/features/starship:1": {},
-		"ghcr.io/devcontainers/features/rust:1": {
-			"version": "latest",
-			"profile": "default"
-		},
-		"ghcr.io/devcontainers/features/git:1": {
-			"version": "latest"
-		},
-		"ghcr.io/devcontainers/features/github-cli:1": {
-			"version": "latest"
-		},
-		"ghcr.io/devcontainers/features/node:1": {
-			"version": "lts"
-		},
-		"ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {},
-		"ghcr.io/rio/features/chezmoi:1": {
-			"version": "latest"
-		}
-	},
+  "features": {
+    // === Shell & Common Persistence ===
+    "ghcr.io/wellcaffeinated/well-cafe/shell-setup:1": {},
+    "ghcr.io/wellcaffeinated/well-cafe/persist-zsh-history:1": {},
 
-	"customizations": {
-		"vscode": {
-			"extensions": [
-				"anthropic.claude-code",
-				"eamodio.gitlens",
-				"editorconfig.editorconfig",
-				"streetsidesoftware.code-spell-checker",
-				"rust-lang.rust-analyzer",
-				"tamasfe.even-better-toml",
-				"fill-labs.dependi"
-				// Add custom theme extensions here if desired
-			],
-			"settings": {
-				"terminal.integrated.defaultProfile.linux": "zsh",
-				"editor.formatOnSave": true,
+    // === Claude Code ===
+    "ghcr.io/devcontainers/features/node:1": {"version": "lts"},
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {},
+    "ghcr.io/wellcaffeinated/well-cafe/persist-claude:1": {},
+
+    // === Language Features (uncomment what you need) ===
+    // == Rust ==
+    "ghcr.io/devcontainers/features/rust:1": {},
+    "ghcr.io/wellcaffeinated/well-cafe/persist-cargo-cache:1": {},
+    "ghcr.io/wellcaffeinated/well-cafe/persist-rust-target:1": {},
+
+    // == JavaScript/TypeScript ==
+    // "ghcr.io/michidk/devcontainers-features/bun:1": {},
+    // "ghcr.io/wellcaffeinated/well-cafe/persist-node-modules:1": {},
+
+    // == Python ==
+    // "ghcr.io/devcontainers/features/python:1": {"version": "3.12"},
+    // "ghcr.io/wellcaffeinated/well-cafe/persist-python-venv:1": {},
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // Common extensions
+        "anthropic.claude-code",
+        "eamodio.gitlens",
+        "editorconfig.editorconfig",
+
+        // Rust extensions (uncomment if using Rust)
+        "rust-lang.rust-analyzer",
+        "fill-labs.dependi",
+        "tamasfe.even-better-toml",
+
+        // JavaScript/TypeScript extensions (uncomment if using JS/TS)
+        // "dbaeumer.vscode-eslint",
+        // "esbenp.prettier-vscode",
+
+        // Python extensions (uncomment if using Python)
+        // "ms-python.python",
+        // "charliermarsh.ruff",
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+
 				"editor.defaultFormatter": "rust-lang.rust-analyzer",
 				"[rust]": {
 					"editor.defaultFormatter": "rust-lang.rust-analyzer"
 				}
-			}
-		}
-	},
-
-	"mounts": [
-		// SSH agent forwarding (secure, no private keys in container)
-		// "source=${SSH_AUTH_SOCK},target=/ssh-agent,type=bind",
-
-		// Shell history persistence
-		"source=devcontainer-zshhistory,target=/commandhistory,type=volume",
-
-		// Rust-specific caching
-		"source=cargo-cache-${devcontainerId},target=/usr/local/cargo/registry,type=volume",
-		"source=cargo-git-cache-${devcontainerId},target=/usr/local/cargo/git,type=volume",
-		"source=rust-target-${devcontainerId},target=/workspaces/${localWorkspaceFolderBasename}/target,type=volume"
-	],
-
-	"remoteEnv": {
-		"SSH_AUTH_SOCK": "/ssh-agent"
-	},
-
-	"initializeCommand": "bash ${localWorkspaceFolder}/.devcontainer/initialize.sh",
-	"postCreateCommand": "bash /workspaces/${localWorkspaceFolderBasename}/.devcontainer/post-create.sh"
+        // JavaScript/TypeScript settings (uncomment if using JS/TS)
+        // "editor.defaultFormatter": "esbenp.prettier-vscode",
+      }
+    }
+  }
 }

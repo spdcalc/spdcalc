@@ -4,31 +4,77 @@ extern crate criterion;
 use criterion::{black_box, Criterion};
 
 extern crate spdcalc;
-use spdcalc::{crystal::CrystalType, dim::ucum::M, *};
+use spdcalc::{crystal::CrystalType, dim::f64prefixes::NANO, dim::ucum::M};
 
-fn bbo(n: Wavelength) -> Indices {
-  CrystalType::BBO_1.get_indices(n, 293.0 * spdcalc::dim::ucum::K)
-}
+fn create_interpolated_crystal() -> CrystalType {
+  use spdcalc::crystal::InterpolatedCrystal;
 
-#[allow(non_snake_case)]
-fn AgGaS2(n: Wavelength) -> Indices {
-  CrystalType::AgGaS2_1.get_indices(n, 293.0 * spdcalc::dim::ucum::K)
-}
+  // Create an interpolated crystal with realistic data covering visible to NIR range
+  // This mimics a typical BBO-like crystal
+  let wavelengths = vec![
+    400.0, 450.0, 500.0, 550.0, 600.0, 650.0, 700.0, 750.0, 800.0, 850.0, 900.0,
+  ]
+  .into_iter()
+  .map(|nm| nm * NANO * M)
+  .collect::<Vec<_>>();
+  let no = vec![
+    1.6749, 1.6725, 1.6701, 1.6677, 1.6653, 1.6629, 1.6605, 1.6581, 1.6557, 1.6533, 1.6509,
+  ];
+  let ne = vec![
+    1.5555, 1.5540, 1.5525, 1.5510, 1.5495, 1.5480, 1.5465, 1.5450, 1.5435, 1.5420, 1.5405,
+  ];
 
-#[allow(non_snake_case)]
-#[allow(dead_code)]
-fn LiIO3_1(n: Wavelength) -> Indices {
-  CrystalType::LiIO3_1.get_indices(n, 293.0 * spdcalc::dim::ucum::K)
+  let crystal = InterpolatedCrystal::new_uniaxial(wavelengths, no, ne)
+    .expect("Failed to create interpolated crystal");
+
+  CrystalType::Interpolated(crystal)
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-  let lambda: f64 = 720e-9;
-  c.bench_function("BBO Indices", |b| b.iter(|| bbo(black_box(lambda * M))));
-  c.bench_function("LiIO3_1 Indices (no T dep)", |b| {
-    b.iter(|| AgGaS2(black_box(lambda * M)))
+  let temperature = 293.0 * spdcalc::dim::ucum::K;
+  let single_wavelength = 720e-9 * M;
+  let varied_wavelengths = [450e-9 * M, 550e-9 * M, 650e-9 * M, 750e-9 * M, 850e-9 * M];
+
+  let interpolated_crystal = create_interpolated_crystal();
+
+  // Single wavelength benchmarks - apples to apples comparison
+  c.bench_function("BBO single wavelength", |b| {
+    b.iter(|| CrystalType::BBO_1.get_indices(black_box(single_wavelength), temperature))
   });
-  c.bench_function("AgGaS2 Indices", |b| {
-    b.iter(|| AgGaS2(black_box(lambda * M)))
+
+  #[allow(non_snake_case)]
+  c.bench_function("AgGaS2 single wavelength", |b| {
+    b.iter(|| CrystalType::AgGaS2_1.get_indices(black_box(single_wavelength), temperature))
+  });
+
+  c.bench_function("Interpolated single wavelength", |b| {
+    b.iter(|| interpolated_crystal.get_indices(black_box(single_wavelength), temperature))
+  });
+
+  // Varied wavelengths benchmarks - realistic usage pattern
+  c.bench_function("BBO varied wavelengths", |b| {
+    b.iter(|| {
+      for &wl in &varied_wavelengths {
+        CrystalType::BBO_1.get_indices(black_box(wl), temperature);
+      }
+    })
+  });
+
+  #[allow(non_snake_case)]
+  c.bench_function("AgGaS2 varied wavelengths", |b| {
+    b.iter(|| {
+      for &wl in &varied_wavelengths {
+        CrystalType::AgGaS2_1.get_indices(black_box(wl), temperature);
+      }
+    })
+  });
+
+  c.bench_function("Interpolated varied wavelengths", |b| {
+    b.iter(|| {
+      for &wl in &varied_wavelengths {
+        interpolated_crystal.get_indices(black_box(wl), temperature);
+      }
+    })
   });
 }
 
