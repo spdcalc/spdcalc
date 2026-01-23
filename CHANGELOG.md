@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/spdcalc/spdcalc/compare/v2.0.1...v2.1.0) (2026-01-23)
+
+
+### Features
+
+* Use ToString for SPDCError::new ([cfb2210](https://github.com/spdcalc/spdcalc/commit/cfb2210787119393deaf487952f1cfbfe445aac2))
+
 ## [2.0.1](https://github.com/spdcalc/spdcalc/compare/v2.0.0...v2.0.1) (2024-10-22)
 
 
