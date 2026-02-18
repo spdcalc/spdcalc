@@ -153,6 +153,11 @@ impl<const N: usize> Interpolator<N> {
   pub fn is_empty(&self) -> bool {
     self.inputs.is_empty()
   }
+
+  /// Get an iterator over input-output pairs
+  pub fn iter(&self) -> impl Iterator<Item = (&f64, &[f64; N])> {
+    self.inputs.iter().zip(self.outputs.iter())
+  }
 }
 
 impl Interpolator<1> {
@@ -326,5 +331,17 @@ mod tests {
 
     assert_eq!(interp.len(), 3);
     assert!(!interp.is_empty());
+  }
+
+  #[test]
+  fn test_iterator_over_2d_interpolation_data(){
+    let inputs = vec![400.0, 500.0, 600.0];
+    let outputs = vec![[1.66, 1.55], [1.65, 1.54], [1.64, 1.53]];
+    let interp = Interpolator::<2>::new(inputs.clone(), outputs.clone()).unwrap();
+
+    interp.iter().zip(inputs.iter().zip(outputs.iter())).for_each(|((input, output), (expected_input, expected_output))| {
+      assert_eq!(input, expected_input);
+      assert_eq!(output, expected_output);
+    });
   }
 }
