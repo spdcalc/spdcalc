@@ -356,13 +356,16 @@ mod tests {
 
     let crystal: CrystalType = serde_json::from_str(json).unwrap();
 
-    // Test interpolation at midpoint (500 nm)
+    // Test interpolation at 500 nm between 400 nm and 600 nm data.
+    // Interpolation is linear in frequency: t = (ω₅₀₀ - ω₆₀₀) / (ω₄₀₀ - ω₆₀₀) = 2/5 = 0.4
+    // no = 1.64 + 0.4 × (1.66 - 1.64) = 1.648
+    // ne = 1.53 + 0.4 × (1.55 - 1.53) = 1.538
     let indices = crystal.get_indices(500.0 * NANO * M, from_celsius_to_kelvin(20.0));
 
     use float_cmp::approx_eq;
-    assert!(approx_eq!(f64, indices.x, 1.65, epsilon = 1e-10));
-    assert!(approx_eq!(f64, indices.y, 1.65, epsilon = 1e-10));
-    assert!(approx_eq!(f64, indices.z, 1.54, epsilon = 1e-10));
+    assert!(approx_eq!(f64, indices.x, 1.648, epsilon = 1e-6));
+    assert!(approx_eq!(f64, indices.y, 1.648, epsilon = 1e-6));
+    assert!(approx_eq!(f64, indices.z, 1.538, epsilon = 1e-6));
   }
 
   #[test]
@@ -422,24 +425,27 @@ mod tests {
 
   #[test]
   fn test_interpolated_vs_expr() {
-    // Create an Expr-based crystal with linear relationship
-    // Slope: (1.64 - 1.66) / (0.6 - 0.4) = -0.1 per micron
+    // Create an Expr-based crystal with a relationship linear in 1/l (frequency-proportional),
+    // which is what frequency interpolation exactly reproduces.
+    // no(l) = 1.60 + 0.024/l  (l in μm)  → no(0.4)=1.66, no(0.5)=1.648, no(0.6)=1.64
+    // ne(l) = 1.49 + 0.024/l             → ne(0.4)=1.55, ne(0.5)=1.538, ne(0.6)=1.53
     let expr_json = r#"{
-      "no": "1.66 - 0.1 * (l - 0.4)",
-      "ne": "1.55 - 0.1 * (l - 0.4)"
+      "no": "1.60 + 0.024/l",
+      "ne": "1.49 + 0.024/l"
     }"#;
     let expr_crystal: CrystalType = serde_json::from_str(expr_json).unwrap();
 
-    // Create equivalent interpolated crystal
+    // Create equivalent interpolated crystal using the exact values from the expression
     let interp_json = r#"{
       "name": "InterpolatedUniaxial",
       "wavelengths_nm": [400.0, 500.0, 600.0],
-      "no": [1.66, 1.65, 1.64],
-      "ne": [1.55, 1.54, 1.53]
+      "no": [1.66, 1.648, 1.64],
+      "ne": [1.55, 1.538, 1.53]
     }"#;
     let interp_crystal: CrystalType = serde_json::from_str(interp_json).unwrap();
 
-    // Compare at test wavelength
+    // Compare at an intermediate wavelength; frequency interpolation should reproduce
+    // the frequency-linear expression to machine precision.
     let nm = NANO * M;
     let expr_indices = expr_crystal.get_indices(532.0 * nm, from_celsius_to_kelvin(20.0));
     let interp_indices = interp_crystal.get_indices(532.0 * nm, from_celsius_to_kelvin(20.0));

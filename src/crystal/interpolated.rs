@@ -20,72 +20,109 @@
 
 use super::*;
 use crate::math::Interpolator;
+use crate::utils::vacuum_wavelength_to_frequency;
 use crate::SPDCError;
-use dim::f64prefixes::NANO;
-use dim::ucum::{Kelvin, M};
+use dim::f64prefixes::{NANO, TERA};
+use dim::ucum::{HZ, Hertz, Kelvin, M, RAD};
 use serde_derive::{Deserialize, Serialize};
+use std::f64::consts::TAU; // 2π — converts angular frequency (rad/s) to ordinary frequency (Hz)
 
-/// Data struct for serialization (plain f64 values)
+/// Data struct for serialization (plain f64 values).
+///
+/// Accepts `wavelengths_nm` for backward-compatible input.
+/// Serializes as `frequencies_thz` for exact round-trips.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct InterpolatedUniaxialData {
+  #[serde(default, skip_serializing_if = "Vec::is_empty")]
   wavelengths_nm: Vec<f64>,
+  #[serde(default, skip_serializing_if = "Vec::is_empty")]
+  frequencies_thz: Vec<f64>,
   no: Vec<f64>,
   ne: Vec<f64>,
 }
 
-/// Runtime struct with dimensional types and cached interpolator
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Runtime struct with interpolator indexed by frequency (THz, ascending)
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(
   try_from = "InterpolatedUniaxialData",
   into = "InterpolatedUniaxialData"
 )]
 pub struct InterpolatedUniaxialImpl {
-  wavelengths_nm: Vec<f64>,
-  no: Vec<f64>, // Unitless refractive indices
-  ne: Vec<f64>,
-  #[serde(skip)]
-  interpolator: Interpolator<2>, // Cached
+  interpolator: Interpolator<2>, // ascending THz → [no, ne]
 }
 
 impl InterpolatedUniaxialImpl {
-  /// Create a new uniaxial interpolated crystal from wavelength and refractive index data
+  /// Create a new uniaxial interpolated crystal from wavelength and refractive index data.
+  ///
+  /// Wavelengths are expected in ascending order
   pub fn try_new(
     wavelengths: Vec<Wavelength>,
     no: Vec<f64>,
     ne: Vec<f64>,
   ) -> Result<Self, SPDCError> {
-    // Convert wavelengths from dimensional types
-    let wavelengths_nm: Vec<f64> = wavelengths
-      .into_iter()
-      .map(|wl| *(wl / (NANO * M)))
+    // Convert ascending wavelengths → descending freq → reverse to ascending THz
+    let freq_vals_asc: Vec<f64> = wavelengths
+      .iter()
+      .rev()
+      .map(|&wl| *(vacuum_wavelength_to_frequency(wl) / (TAU * TERA * HZ * RAD)))
       .collect();
-
-    Self::try_new_raw(wavelengths_nm, no, ne)
+    let no_asc: Vec<f64> = no.into_iter().rev().collect();
+    let ne_asc: Vec<f64> = ne.into_iter().rev().collect();
+    Self::try_new_raw(freq_vals_asc, no_asc, ne_asc)
   }
 
-  /// Create a new uniaxial interpolated crystal from raw f64 wavelength (nm) and refractive index data
-  pub fn try_new_raw(
-    wavelengths_nm: Vec<f64>,
+  /// Create a new uniaxial interpolated crystal from angular frequency values (rad/s)
+  /// and refractive index data. Frequencies must be provided in ascending order.
+  ///
+  /// Converts ω to ordinary frequency via f [THz] = ω / (2π × 10¹²).
+  pub fn try_new_from_angular_frequencies(
+    frequencies: Vec<Frequency>,
     no: Vec<f64>,
     ne: Vec<f64>,
   ) -> Result<Self, SPDCError> {
-    // Validate array lengths
-    if wavelengths_nm.len() != no.len() || wavelengths_nm.len() != ne.len() {
+    let freqs = frequencies
+      .iter()
+      .map(|&f| *(f / (TAU * TERA * HZ * RAD)))
+      .collect();
+    Self::try_new_raw(freqs, no, ne)
+  }
+
+  /// Create a new uniaxial interpolated crystal from ordinary frequency values (Hz)
+  /// and refractive index data. Frequencies must be provided in ascending order.
+  pub fn try_new_from_ordinary_frequencies(
+    frequencies: Vec<Hertz<f64>>,
+    no: Vec<f64>,
+    ne: Vec<f64>,
+  ) -> Result<Self, SPDCError> {
+    let freqs = frequencies
+      .iter()
+      .map(|&f| *(f / (HZ * TERA)))
+      .collect();
+    Self::try_new_raw(freqs, no, ne)
+  }
+
+  /// Create a new uniaxial interpolated crystal from ordinary frequencies in THz
+  /// (f = ω / 2π, must be ascending) and refractive index data.
+  pub fn try_new_raw(
+    frequencies_thz: Vec<f64>,
+    no: Vec<f64>,
+    ne: Vec<f64>,
+  ) -> Result<Self, SPDCError> {
+    if frequencies_thz.len() != no.len() || frequencies_thz.len() != ne.len() {
       return Err(SPDCError::new(format!(
         "Array length mismatch: {} wavelengths, {} no values, {} ne values",
-        wavelengths_nm.len(),
+        frequencies_thz.len(),
         no.len(),
         ne.len()
       )));
     }
 
-    if wavelengths_nm.is_empty() {
+    if frequencies_thz.is_empty() {
       return Err(SPDCError::new(
         "At least one data point is required".to_string(),
       ));
     }
 
-    // Validate refractive index ranges
     if no.iter().any(|&n| n < 1.0) {
       return Err(SPDCError::new(
         "no values must be greater than or equal to 1.0".to_string(),
@@ -98,25 +135,12 @@ impl InterpolatedUniaxialImpl {
       ));
     }
 
-    // Construct interpolator with paired (no, ne) outputs
     let outputs: Vec<[f64; 2]> = no.iter().zip(&ne).map(|(&n_o, &n_e)| [n_o, n_e]).collect();
 
-    let interpolator = Interpolator::<2>::new(wavelengths_nm.clone(), outputs)
+    let interpolator = Interpolator::<2>::new(frequencies_thz, outputs)
       .map_err(|e| SPDCError::new(format!("Wavelength validation failed: {}", e)))?;
 
-    Ok(Self {
-      wavelengths_nm,
-      no,
-      ne,
-      interpolator,
-    })
-  }
-}
-
-impl PartialEq for InterpolatedUniaxialImpl {
-  fn eq(&self, other: &Self) -> bool {
-    // Compare only the data, not the cached interpolator
-    self.no == other.no && self.ne == other.ne && self.wavelengths_nm == other.wavelengths_nm
+    Ok(Self { interpolator })
   }
 }
 
@@ -124,22 +148,35 @@ impl TryFrom<InterpolatedUniaxialData> for InterpolatedUniaxialImpl {
   type Error = SPDCError;
 
   fn try_from(data: InterpolatedUniaxialData) -> Result<Self, Self::Error> {
-    let wavelengths: Vec<Wavelength> = data
-      .wavelengths_nm
-      .into_iter()
-      .map(|wl_nm| wl_nm * NANO * M)
-      .collect();
-
-    Self::try_new(wavelengths, data.no, data.ne)
+    if !data.frequencies_thz.is_empty() {
+      Self::try_new_raw(data.frequencies_thz, data.no, data.ne)
+    } else if !data.wavelengths_nm.is_empty() {
+      let wavelengths: Vec<Wavelength> = data
+        .wavelengths_nm
+        .into_iter()
+        .map(|wl_nm| wl_nm * NANO * M)
+        .collect();
+      Self::try_new(wavelengths, data.no, data.ne)
+    } else {
+      Err(SPDCError::new(
+        "Must provide either frequencies_thz or wavelengths_nm",
+      ))
+    }
   }
 }
 
 impl From<&InterpolatedUniaxialImpl> for InterpolatedUniaxialData {
   fn from(value: &InterpolatedUniaxialImpl) -> Self {
+    let (frequencies_thz, (no, ne)) = value
+      .interpolator
+      .iter()
+      .map(|(&f, output)| (f, (output[0], output[1])))
+      .unzip();
     Self {
-      wavelengths_nm: value.wavelengths_nm.clone(),
-      no: value.no.clone(),
-      ne: value.ne.clone(),
+      wavelengths_nm: vec![],
+      frequencies_thz,
+      no,
+      ne,
     }
   }
 }
@@ -153,8 +190,8 @@ impl From<InterpolatedUniaxialImpl> for InterpolatedUniaxialData {
 impl InterpolatedUniaxialImpl {
   /// Get refractive indices at a specific wavelength
   pub fn get_indices(&self, wavelength: Wavelength, _temperature: Kelvin<f64>) -> Indices {
-    let wavelength_nm = *(wavelength / (NANO * M));
-    let result = self.interpolator.interpolate(wavelength_nm);
+    let freq_val = *(vacuum_wavelength_to_frequency(wavelength) / (TAU * TERA * HZ * RAD));
+    let result = self.interpolator.interpolate(freq_val);
     // For uniaxial: (no, no, ne) where no=nx=ny, ne=nz
     Indices::new(na::Vector3::new(result[0], result[0], result[1]))
   }
@@ -208,6 +245,30 @@ impl InterpolatedCrystal {
     ne: Vec<f64>,
   ) -> Result<Self, SPDCError> {
     let inner = InterpolatedUniaxialImpl::try_new(wavelengths_nm, no, ne)?;
+    Ok(InterpolatedCrystal::InterpolatedUniaxial(inner))
+  }
+
+  /// Create a new uniaxial interpolated crystal from angular frequency (rad/s) and
+  /// refractive index data. Frequencies must be in ascending order.
+  pub fn new_uniaxial_from_angular_frequencies(
+    frequencies: Vec<Frequency>,
+    no: Vec<f64>,
+    ne: Vec<f64>,
+  ) -> Result<Self, SPDCError> {
+    let inner =
+      InterpolatedUniaxialImpl::try_new_from_angular_frequencies(frequencies, no, ne)?;
+    Ok(InterpolatedCrystal::InterpolatedUniaxial(inner))
+  }
+
+  /// Create a new uniaxial interpolated crystal from ordinary frequency (Hz) and
+  /// refractive index data. Frequencies must be in ascending order.
+  pub fn new_uniaxial_from_ordinary_frequencies(
+    frequencies: Vec<Hertz<f64>>,
+    no: Vec<f64>,
+    ne: Vec<f64>,
+  ) -> Result<Self, SPDCError> {
+    let inner =
+      InterpolatedUniaxialImpl::try_new_from_ordinary_frequencies(frequencies, no, ne)?;
     Ok(InterpolatedCrystal::InterpolatedUniaxial(inner))
   }
 
@@ -335,8 +396,12 @@ mod tests {
 
     let indices = crystal.get_indices(500.0 * NANO * M, from_celsius_to_kelvin(20.0));
 
-    assert!(approx_eq!(f64, indices.x, 1.65, epsilon = 1e-10)); // no
-    assert!(approx_eq!(f64, indices.z, 1.54, epsilon = 1e-10)); // ne
+    // Interpolation is linear in ordinary frequency f = c/λ (THz).
+    // t = (f₅₀₀ - f₆₀₀) / (f₄₀₀ - f₆₀₀) = (1/500 - 1/600) / (1/400 - 1/600) = 2/5 = 0.4
+    // no = 1.64 + 0.4 × (1.66 - 1.64) = 1.648
+    // ne = 1.53 + 0.4 × (1.55 - 1.53) = 1.538
+    assert!(approx_eq!(f64, indices.x, 1.648, epsilon = 1e-6)); // no
+    assert!(approx_eq!(f64, indices.z, 1.538, epsilon = 1e-6)); // ne
   }
 
   #[test]
@@ -348,9 +413,11 @@ mod tests {
     )
     .unwrap();
 
+    // 400 nm has higher frequency than both stored points → clamps to last value
+    // (last in ascending-freq order = highest freq = shortest wavelength = 500 nm)
     let indices = crystal.get_indices(400.0 * NANO * M, from_celsius_to_kelvin(20.0));
 
-    assert_eq!(indices.x, 1.65); // Clamped to first value
+    assert_eq!(indices.x, 1.65); // Clamped to 500 nm value
     assert_eq!(indices.z, 1.54);
   }
 
@@ -363,9 +430,11 @@ mod tests {
     )
     .unwrap();
 
+    // 700 nm has lower frequency than both stored points → clamps to first value
+    // (first in ascending-freq order = lowest freq = longest wavelength = 500 nm)
     let indices = crystal.get_indices(700.0 * NANO * M, from_celsius_to_kelvin(20.0));
 
-    assert_eq!(indices.x, 1.65); // Clamped to last value
+    assert_eq!(indices.x, 1.65); // Clamped to 500 nm value
     assert_eq!(indices.z, 1.54);
   }
 
@@ -381,13 +450,20 @@ mod tests {
     }"#;
 
     let crystal: InterpolatedCrystal = serde_json::from_str(json).unwrap();
+    let temp = from_celsius_to_kelvin(20.0);
 
-    match crystal {
-      InterpolatedCrystal::InterpolatedUniaxial(inner) => {
-        assert_eq!(inner.no, vec![1.66, 1.65, 1.64]);
-        assert_eq!(inner.ne, vec![1.55, 1.54, 1.53]);
-      }
-    }
+    // Verify the stored data via get_indices at the known exact wavelengths
+    let i400 = crystal.get_indices(400.0 * NANO * M, temp);
+    assert_eq!(i400.x, 1.66); // no at 400 nm
+    assert_eq!(i400.z, 1.55); // ne at 400 nm
+
+    let i500 = crystal.get_indices(500.0 * NANO * M, temp);
+    assert_eq!(i500.x, 1.65);
+    assert_eq!(i500.z, 1.54);
+
+    let i600 = crystal.get_indices(600.0 * NANO * M, temp);
+    assert_eq!(i600.x, 1.64);
+    assert_eq!(i600.z, 1.53);
   }
 
   #[test]
@@ -415,9 +491,15 @@ mod tests {
     let crystal: InterpolatedCrystal = serde_json::from_str(json).unwrap();
     let indices = crystal.get_indices(575.0 * NANO * M, from_celsius_to_kelvin(20.0));
 
-    // Should interpolate between 550 and 600
-    assert!(approx_eq!(f64, indices.x, 1.645, epsilon = 1e-10)); // no
-    assert!(approx_eq!(f64, indices.z, 1.545, epsilon = 1e-10)); // ne
+    // Interpolation between 550 nm and 600 nm in ordinary frequency space (f = c/λ):
+    // t = (f₅₇₅ - f₆₀₀) / (f₅₅₀ - f₆₀₀) = (1/575 - 1/600) / (1/550 - 1/600) = 11/23 ≈ 0.4783
+    // no ≈ 1.64 + (11/23) × 0.01 ≈ 1.64478
+    // ne ≈ 1.54 + (11/23) × 0.01 ≈ 1.54478
+    let t = 11.0_f64 / 23.0;
+    let expected_no = 1.64 + t * (1.65 - 1.64);
+    let expected_ne = 1.54 + t * (1.55 - 1.54);
+    assert!(approx_eq!(f64, indices.x, expected_no, epsilon = 1e-6));
+    assert!(approx_eq!(f64, indices.z, expected_ne, epsilon = 1e-6));
   }
 
   #[test]
@@ -433,7 +515,81 @@ mod tests {
     let json_out = serde_json::to_string(&crystal).unwrap();
     let deserialized: InterpolatedCrystal = serde_json::from_str(&json_out).unwrap();
 
+    // json_out uses frequencies_thz (exact), so the second deserialization
+    // produces identical interpolator data and PartialEq holds.
     assert_eq!(crystal, deserialized);
+  }
+
+  #[test]
+  fn test_frequencies_thz_deserialize_and_roundtrip() {
+    // Ordinary frequencies in THz (f = ω/2π), ascending order.
+    // ~500 THz ≈ 600 nm, ~600 THz ≈ 500 nm, ~750 THz ≈ 400 nm
+    let json_in = r#"{
+      "name": "InterpolatedUniaxial",
+      "frequencies_thz": [500.0, 600.0, 750.0],
+      "no": [1.64, 1.65, 1.66],
+      "ne": [1.53, 1.54, 1.55]
+    }"#;
+
+    let crystal: InterpolatedCrystal = serde_json::from_str(json_in).unwrap();
+
+    // Serialization must emit frequencies_thz, not wavelengths_nm
+    let json_out = serde_json::to_string(&crystal).unwrap();
+    assert!(json_out.contains("frequencies_thz"));
+    assert!(!json_out.contains("wavelengths_nm"));
+
+    // Round-trip is exact because frequencies are stored and restored without conversion
+    let deserialized: InterpolatedCrystal = serde_json::from_str(&json_out).unwrap();
+    assert_eq!(crystal, deserialized);
+  }
+
+  #[test]
+  fn test_frequencies_thz_interpolation() {
+    use crate::utils::frequency_to_vacuum_wavelength;
+
+    // Two data points at round ordinary frequencies (THz = cycles/s × 10⁻¹²).
+    // 400 THz ≈ 750 nm, 600 THz ≈ 500 nm; midpoint is exactly 500 THz.
+    let json = r#"{
+      "name": "InterpolatedUniaxial",
+      "frequencies_thz": [400.0, 600.0],
+      "no": [1.64, 1.66],
+      "ne": [1.53, 1.55]
+    }"#;
+
+    let crystal: InterpolatedCrystal = serde_json::from_str(json).unwrap();
+
+    // Convert the midpoint ordinary frequency (500 THz) to angular frequency then
+    // to wavelength, so get_indices queries at the stored value exactly.
+    let mid_wl = frequency_to_vacuum_wavelength(500.0 * TAU * TERA * HZ * RAD);
+    let indices = crystal.get_indices(mid_wl, from_celsius_to_kelvin(20.0));
+
+    assert!(approx_eq!(f64, indices.x, 1.65, epsilon = 1e-10));
+    assert!(approx_eq!(f64, indices.z, 1.54, epsilon = 1e-10));
+  }
+
+  #[test]
+  fn test_new_uniaxial_from_ordinary_frequencies() {
+    use crate::utils::frequency_to_vacuum_wavelength;
+
+    // 500 THz ≈ 600 nm, 600 THz ≈ 500 nm
+    let crystal = InterpolatedCrystal::new_uniaxial_from_ordinary_frequencies(
+      vec![500.0 * TERA * HZ, 600.0 * TERA * HZ],
+      vec![1.64, 1.65],
+      vec![1.53, 1.54],
+    )
+    .unwrap();
+
+    // Exact match at the 600 THz data point
+    let wl = frequency_to_vacuum_wavelength(600.0 * TAU * TERA * HZ * RAD);
+    let indices = crystal.get_indices(wl, from_celsius_to_kelvin(20.0));
+    assert_eq!(indices.x, 1.65);
+    assert_eq!(indices.z, 1.54);
+
+    // Midpoint between 500 THz and 600 THz → 550 THz → no = 1.645, ne = 1.535
+    let wl_mid = frequency_to_vacuum_wavelength(550.0 * TAU * TERA * HZ * RAD);
+    let indices_mid = crystal.get_indices(wl_mid, from_celsius_to_kelvin(20.0));
+    assert!(approx_eq!(f64, indices_mid.x, 1.645, epsilon = 1e-10));
+    assert!(approx_eq!(f64, indices_mid.z, 1.535, epsilon = 1e-10));
   }
 
   #[test]
