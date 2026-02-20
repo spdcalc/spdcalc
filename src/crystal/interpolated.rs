@@ -23,7 +23,7 @@ use crate::math::Interpolator;
 use crate::utils::vacuum_wavelength_to_frequency;
 use crate::SPDCError;
 use dim::f64prefixes::{NANO, TERA};
-use dim::ucum::{HZ, Hertz, Kelvin, M, RAD};
+use dim::ucum::{Hertz, Kelvin, HZ, M, RAD};
 use serde_derive::{Deserialize, Serialize};
 use std::f64::consts::TAU; // 2π — converts angular frequency (rad/s) to ordinary frequency (Hz)
 
@@ -94,10 +94,7 @@ impl InterpolatedUniaxialImpl {
     no: Vec<f64>,
     ne: Vec<f64>,
   ) -> Result<Self, SPDCError> {
-    let freqs = frequencies
-      .iter()
-      .map(|&f| *(f / (HZ * TERA)))
-      .collect();
+    let freqs = frequencies.iter().map(|&f| *(f / (HZ * TERA))).collect();
     Self::try_new_raw(freqs, no, ne)
   }
 
@@ -255,8 +252,7 @@ impl InterpolatedCrystal {
     no: Vec<f64>,
     ne: Vec<f64>,
   ) -> Result<Self, SPDCError> {
-    let inner =
-      InterpolatedUniaxialImpl::try_new_from_angular_frequencies(frequencies, no, ne)?;
+    let inner = InterpolatedUniaxialImpl::try_new_from_angular_frequencies(frequencies, no, ne)?;
     Ok(InterpolatedCrystal::InterpolatedUniaxial(inner))
   }
 
@@ -267,8 +263,7 @@ impl InterpolatedCrystal {
     no: Vec<f64>,
     ne: Vec<f64>,
   ) -> Result<Self, SPDCError> {
-    let inner =
-      InterpolatedUniaxialImpl::try_new_from_ordinary_frequencies(frequencies, no, ne)?;
+    let inner = InterpolatedUniaxialImpl::try_new_from_ordinary_frequencies(frequencies, no, ne)?;
     Ok(InterpolatedCrystal::InterpolatedUniaxial(inner))
   }
 

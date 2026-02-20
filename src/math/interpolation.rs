@@ -334,14 +334,17 @@ mod tests {
   }
 
   #[test]
-  fn test_iterator_over_2d_interpolation_data(){
+  fn test_iterator_over_2d_interpolation_data() {
     let inputs = vec![400.0, 500.0, 600.0];
     let outputs = vec![[1.66, 1.55], [1.65, 1.54], [1.64, 1.53]];
     let interp = Interpolator::<2>::new(inputs.clone(), outputs.clone()).unwrap();
 
-    interp.iter().zip(inputs.iter().zip(outputs.iter())).for_each(|((input, output), (expected_input, expected_output))| {
-      assert_eq!(input, expected_input);
-      assert_eq!(output, expected_output);
-    });
+    interp
+      .iter()
+      .zip(inputs.iter().zip(outputs.iter()))
+      .for_each(|((input, output), (expected_input, expected_output))| {
+        assert_eq!(input, expected_input);
+        assert_eq!(output, expected_output);
+      });
   }
 }
