@@ -66,19 +66,19 @@ impl CrystalSetup {
     );
 
     // Equation (11)
-    // x² + bx + c = 0
-    let b = s_squared.dot(&sum_recip);
+    // x² - bx + c = 0
+    let b = -s_squared.dot(&sum_recip);
     let c = s_squared.dot(&prod_recip);
 
     let invxsq = match roots::find_roots_quadratic(1., b, c) {
-      roots::Roots::One([n]) => -n,
-      // n1 is < n2
-      roots::Roots::Two([n1, n2]) => {
+      roots::Roots::One([x]) => -x,
+      // x1 is < x2
+      roots::Roots::Two([x1, x2]) => {
         match polarization {
           // fast
-          PolarizationType::Ordinary => -n2,
+          PolarizationType::Ordinary => x2,
           // slow
-          PolarizationType::Extraordinary => -n1,
+          PolarizationType::Extraordinary => x1,
         }
       }
       _ => return RIndex::new(0.), // imaginary index
@@ -209,6 +209,53 @@ mod test {
 
     assert_nearly_equal!("index_along_angle no", actual.0, expected.0, 1e-12);
     assert_nearly_equal!("index_along_angle ne", actual.1, expected.1, 1e-12);
+  }
+
+  #[test]
+  fn index_along_expr_crystal_test() {
+    // Crystal with constant indices: no = 1, ne = 2
+    let crystal = CrystalType::from_string(r#"no = 1, ne = 2"#).unwrap();
+    let crystal_setup = CrystalSetup {
+      crystal,
+      pm_type: PMType::Type2_e_eo,
+      phi: Angle::new(0.),
+      theta: 90. * DEG,
+      length: 1e-3 * M,
+      temperature: crate::utils::from_celsius_to_kelvin(20.),
+      counter_propagation: false,
+    };
+
+    let wavelength = 1550e-9 * M;
+    // Direction of propagation along z
+    let direction = Beam::new(
+      PolarizationType::Extraordinary,
+      Angle::new(0.),
+      Angle::new(0.),
+      wavelength,
+      1. * M,
+    )
+    .direction();
+
+    // For e->eo: signal is Extraordinary, idler is Ordinary
+    let signal_pol = crystal_setup.pm_type.signal_polarization();
+    let idler_pol = crystal_setup.pm_type.idler_polarization();
+
+    let n_signal = crystal_setup.index_along(wavelength, direction, signal_pol);
+    let n_idler = crystal_setup.index_along(wavelength, direction, idler_pol);
+
+    assert_eq!(signal_pol, PolarizationType::Extraordinary);
+    assert_eq!(idler_pol, PolarizationType::Ordinary);
+    dbg!("n_signal: {}, n_idler: {}", *n_signal, *n_idler);
+    assert_eq!(
+      *n_signal, 2.0,
+      "Expected signal index to be 2.0, got {}",
+      *n_signal
+    );
+    assert_eq!(
+      *n_idler, 1.0,
+      "Expected idler index to be 1.0, got {}",
+      *n_idler
+    );
   }
 
   #[test]
