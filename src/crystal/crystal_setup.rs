@@ -66,8 +66,8 @@ impl CrystalSetup {
     );
 
     // Equation (11)
-    // x² - bx + c = 0
-    let b = -s_squared.dot(&sum_recip);
+    // x² + bx + c = 0
+    let b = s_squared.dot(&sum_recip);
     let c = s_squared.dot(&prod_recip);
 
     let invxsq = match roots::find_roots_quadratic(1., b, c) {
@@ -76,9 +76,9 @@ impl CrystalSetup {
       roots::Roots::Two([x1, x2]) => {
         match polarization {
           // fast
-          PolarizationType::Ordinary => x2,
+          PolarizationType::Ordinary => -x2,
           // slow
-          PolarizationType::Extraordinary => x1,
+          PolarizationType::Extraordinary => -x1,
         }
       }
       _ => return RIndex::new(0.), // imaginary index
