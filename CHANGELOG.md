@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.1.0](https://github.com/spdcalc/spdcalc/compare/v2.0.1...v2.1.0) (2026-02-18)
+
+
+### Features
+
+* add Interpolator:iter() ([927f710](https://github.com/spdcalc/spdcalc/commit/927f710c0474c6a4c7b551ae681cdc9536bc28da))
+* refactor interpolated crystal to use frequency under the hood ([7df096d](https://github.com/spdcalc/spdcalc/commit/7df096d09ced53a9c78caee8a310db97f1da8edc))
+* Use ToString for SPDCError::new ([cfb2210](https://github.com/spdcalc/spdcalc/commit/cfb2210787119393deaf487952f1cfbfe445aac2))
+
 ## [2.0.1](https://github.com/spdcalc/spdcalc/compare/v2.0.0...v2.0.1) (2024-10-22)
 
 
