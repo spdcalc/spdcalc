@@ -16,7 +16,8 @@ pub const META: CrystalMeta = CrystalMeta {
   reference_url: "http://www.newlightphotonics.com/v1/LN-crystal.html",
   axis_type: OpticAxisType::NegativeUniaxial,
   point_group: PointGroup::HM_3m,
-  transmission_range: Some(ValidWavelengthRange(0.4e-9, 3.4e-9)),
+  // Corrected from spdcalc v1 based on newlight photonics website
+  transmission_range: Some(ValidWavelengthRange(420e-9, 5_200e-9)),
   temperature_dependence_known: true,
 };
 
