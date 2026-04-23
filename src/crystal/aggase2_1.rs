@@ -26,9 +26,6 @@ const DNZ: f64 = 15e-5;
 
 /// Get refractive Indices
 ///
-/// n_o^2 = 4.9048+0.11768/(\lambda^2-0.04750)-0.027169\lambda^2
-/// n_e^2 = 4.5820+0.099169/(\lambda^2-0.04443)-0.021950\lambda^2
-///
 /// # Example
 /// ```
 /// use spdcalc::{crystal::*, dim::ucum, na::Vector3, utils::from_celsius_to_kelvin};
