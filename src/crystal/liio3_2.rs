@@ -1,6 +1,6 @@
 //! # LiIO3-2 CrystalType
 //!
-//! K. Takizawa, M. Okada, S. Leiri, Opt. Commun., 23, 279 (1977)
+//! K. Takizawa, M. Okada, S. Ieiri, Opt. Commun., 23, 279 (1977)
 //!
 //! ## Example
 //! ```
