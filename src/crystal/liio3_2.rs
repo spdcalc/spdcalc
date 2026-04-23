@@ -24,7 +24,7 @@ use dim::{
 pub const META: CrystalMeta = CrystalMeta {
   id: "LiIO3_2",
   name: "LiIO3 ref 2",
-  reference_url: "http://www.newlightphotonics.com/v1/bbo-properties.html",
+  reference_url: "https://www.sciencedirect.com/science/article/abs/pii/0030401877903261",
   axis_type: OpticAxisType::NegativeUniaxial,
   point_group: PointGroup::HM_622,
   transmission_range: Some(ValidWavelengthRange(300e-9, 5_000e-9)),
