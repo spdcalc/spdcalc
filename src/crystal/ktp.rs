@@ -1,7 +1,7 @@
 //! # KTP CrystalType
 //!
 //! [Reference](http://dx.doi.org/10.1063/1.1668320)
-//! [More Information](http://www.redoptronics.com/KTP-crystal.html)
+//! [More Information](https://web.archive.org/web/20240225020609/http://www.redoptronics.com/KTP-crystal.html)
 //!
 //! # Example
 //! ```
@@ -43,7 +43,7 @@ const DNZ: f64 = 1.6e-5;
 pub fn get_indices(wavelength: Wavelength, temperature: Kelvin<f64>) -> Indices {
   let lambda_sq = (wavelength / (MICRO * M)).powi(2);
 
-  // http://www.redoptronics.com/KTP-crystal.html
+  // https://web.archive.org/web/20240225020609/http://www.redoptronics.com/KTP-crystal.html
   let mut nx = (2.10468 + 0.89342 * lambda_sq / (lambda_sq - 0.04438) - 0.01036 * lambda_sq).sqrt();
 
   let mut ny = if *(wavelength / (MICRO * M)) < 1.2 {

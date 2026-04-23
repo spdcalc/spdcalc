@@ -1,6 +1,6 @@
 //! # AgGaS2_1 CrystalType
 //!
-//! [Reference](http://www.redoptronics.com/AgGaS2-AgGaSe2.html)
+//! [Reference](https://web.archive.org/web/20240225020634/http://www.redoptronics.com/AgGaS2-AgGaSe2.html)
 //!
 //! ## Example
 //! ```
@@ -24,7 +24,7 @@ pub const AgGaS2_1: SellmeierCrystal<SellmeierStandard, Standard> = SellmeierCry
   meta: CrystalMeta {
     id: "AgGaS2_1",
     name: "AgGaS2 ref 1",
-    reference_url: "http://www.redoptronics.com/AgGaS2-AgGaSe2.html",
+    reference_url: "https://web.archive.org/web/20240225020634/http://www.redoptronics.com/AgGaS2-AgGaSe2.html",
     axis_type: OpticAxisType::NegativeUniaxial,
     point_group: PointGroup::HM_4,
     transmission_range: Some(ValidWavelengthRange(500e-9, 13_000e-9)),
