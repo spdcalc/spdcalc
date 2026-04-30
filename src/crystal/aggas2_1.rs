@@ -24,7 +24,7 @@ pub const AgGaS2_1: SellmeierCrystal<SellmeierStandard, Standard> = SellmeierCry
   meta: CrystalMeta {
     id: "AgGaS2_1",
     name: "AgGaS2 ref 1",
-    reference_url: "https://web.archive.org/web/20240225020634/http://www.redoptronics.com/AgGaS2-AgGaSe2.html",
+    reference_url: "https://www.semanticscholar.org/paper/Refractive-index-interpolation-in-phase-matching.-Bhar/63a04ace5f192a7224faa7c36c57f6ea03b99215/figure/0",
     axis_type: OpticAxisType::NegativeUniaxial,
     point_group: PointGroup::HM_4,
     transmission_range: Some(ValidWavelengthRange(500e-9, 13_000e-9)),

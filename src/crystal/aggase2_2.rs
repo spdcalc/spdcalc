@@ -15,7 +15,7 @@ pub const META: CrystalMeta = CrystalMeta {
   reference_url: "https://www.osapublishing.org/ao/abstract.cfm?uri=ao-15-2-305_1",
   axis_type: OpticAxisType::NegativeUniaxial,
   point_group: PointGroup::HM_3m,
-  transmission_range: Some(ValidWavelengthRange(1_000e-9, 13_500e-9)),
+  transmission_range: Some(ValidWavelengthRange(725e-9, 13_500e-9)),
   temperature_dependence_known: true,
 };
 
