@@ -277,5 +277,27 @@ This library is the backbone of two other spdcalc libraries:
 
 **Important:** Any modifications should take into account that those libraries depend on spdcalc and would break if the API changes, so breaking API changes should be called out.
 
+## Known Issues
+
+- **Polarization labeling**: `PolarizationType::Ordinary`/`Extraordinary` and
+  `PMType` labels use uniaxial crystal terminology but actually implement a
+  fast/slow wave mapping. This is correct for negative uniaxial crystals (BBO)
+  but conceptually wrong for biaxial (KTP) and positive uniaxial crystals. The
+  Fresnel solver in `CrystalSetup::index_along()` always maps `Ordinary` to the
+  slow (high-n) root and `Extraordinary` to the fast (low-n) root. See
+  [.claude/docs/issue-polarization-type-labeling.md](.claude/docs/issue-polarization-type-labeling.md)
+  for the full analysis and recommended fix path.
+
+## Reference Documents
+
+- [Polarization Conventions in Nonlinear Optics](.claude/docs/polarization-conventions-in-nonlinear-optics.md):
+  Standard conventions for labeling polarization eigenmodes in uniaxial and
+  biaxial crystals, phase-matching type classification, QPM configurations,
+  and key references from the nonlinear optics literature.
+- [Polarization Type Labeling Issue](.claude/docs/issue-polarization-type-labeling.md):
+  Detailed analysis of the `PolarizationType`/`PMType` naming problem, the
+  failing expression crystal test, missing PM types, and a phased plan for
+  fixing the issue.
+
 ## Other notes
 
